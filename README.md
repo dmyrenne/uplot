@@ -14,7 +14,7 @@ Der G-Code entsteht mit [vpype](https://github.com/abey79/vpype) und [vpype-gcod
 Voraussetzung: Docker (Podman geht ebenso). Das fertige Image liegt in der GitHub Container Registry
 (für `linux/amd64` und `linux/arm64`, z. B. Raspberry Pi 4/5):
 
-    docker run -d --name uplot -p 127.0.0.1:5055:5055 -v uplot-data:/data --restart unless-stopped \
+    docker run -d --name uplot -p 5055:5055 -v uplot-data:/data --restart unless-stopped \
       ghcr.io/dmyrenne/uplot:latest
 
 Oder mit Compose aus diesem Repo:
@@ -22,25 +22,27 @@ Oder mit Compose aus diesem Repo:
     git clone https://github.com/dmyrenne/uplot.git
     cd uplot
     docker compose up -d            # lädt ghcr.io/dmyrenne/uplot:latest
-    docker compose up -d --build    # alternativ selbst aus dem Quellcode bauen
 
-Danach läuft μplot unter http://127.0.0.1:5055. Das Image enthält die Beispiel-SVGs aus brianlow/plotter;
+Selbst aus dem Quellcode bauen: in `compose.yaml` die Zeile `build: .` einkommentieren, dann
+`docker compose up -d --build`.
+
+Danach läuft μplot unter http://localhost:5055 bzw. `http://<server>:5055`. Das Image enthält die Beispiel-SVGs aus brianlow/plotter;
 sie stehen unter „Beispiel laden …“ zur Auswahl.
 
 | Aufgabe | Befehl |
 | --- | --- |
 | Stoppen | `docker compose down` |
 | Logs ansehen | `docker compose logs -f` |
-| Aktualisieren | `docker compose pull && docker compose up -d` (oder `git pull && docker compose up -d --build`) |
+| Aktualisieren | `docker compose pull && docker compose up -d` (selbst gebaut: `git pull && docker compose up -d --build`) |
 | Profile sichern | `docker compose cp uplot:/data/presets.json .` und `docker compose cp uplot:/data/pens.json .` |
 | Profile einspielen | `docker compose cp presets.json uplot:/data/presets.json` und `docker compose cp pens.json uplot:/data/pens.json` |
 
 - Die Drucker- und Stift-Profile liegen im Docker-Volume `uplot-data` (im Container unter `/data`) und bleiben bei
   Neustarts und Updates erhalten. `docker compose down -v` löscht sie mit.
-- Der Port ist nur an `127.0.0.1` gebunden. Soll μplot auch von anderen Geräten im Netz erreichbar sein,
-  in `compose.yaml` `"127.0.0.1:5055:5055"` durch `"5055:5055"` ersetzen. Es gibt keine Anmeldung, also nur
-  in vertrauenswürdigen Netzen.
-- Anderer Port: in `compose.yaml` die linke Portnummer ändern, z. B. `"127.0.0.1:8080:5055"`.
+- μplot ist im ganzen Netz erreichbar. Es gibt keine Anmeldung: nur in vertrauenswürdigen Netzen betreiben oder
+  hinter einen Reverse Proxy mit Anmeldung stellen. Nur vom eigenen Rechner erreichbar: in `compose.yaml`
+  `"5055:5055"` durch `"127.0.0.1:5055:5055"` ersetzen.
+- Anderer Port: in `compose.yaml` die linke Portnummer ändern, z. B. `"8080:5055"`.
 - Die Container starten automatisch mit Docker neu (`restart: unless-stopped`).
 
 ### Image-Builds

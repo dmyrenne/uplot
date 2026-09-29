@@ -4,11 +4,11 @@ name: uplot
 services:
   uplot:
     image: ghcr.io/dmyrenne/uplot:latest
-    build: .                    # nur für "docker compose up --build" aus dem Quellcode
+    # build: .                  # zum Bauen aus dem Quellcode einkommentieren, dann "docker compose up -d --build"
     ports:
-      - "127.0.0.1:5055:5055"   # nur vom eigenen Rechner erreichbar
+      - "5055:5055"             # im ganzen Netz erreichbar; nur lokal: "127.0.0.1:5055:5055"
     volumes:
-      - uplot-data:/data        # Drucker-Profile (presets.json)
+      - uplot-data:/data        # Drucker- und Stift-Profile (presets.json, pens.json)
     restart: unless-stopped
 
 volumes:
