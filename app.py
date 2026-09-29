@@ -21,6 +21,23 @@ PRESETS_FILE = Path(os.environ.get("UPLOT_DATA", BASE)) / "presets.json"
 BUILTIN_PRESET = "Prusa MK3S+"
 
 app = Flask(__name__, static_folder=None)
+
+# Fehlermeldungen in der Sprache der Oberfläche (Accept-Language); Texte der Oberfläche: static/i18n.js
+MESSAGES = {
+    "invalid_value": {"de": "Ungültiger Wert für {key}: {raw!r}", "en": "Invalid value for {key}: {raw!r}"},
+    "empty_area": {"de": "Die plotbare Fläche ist leer. Nullpunkt und Sicherheitsabstand prüfen.",
+                   "en": "The plot area is empty. Check the origin and safety margin."},
+    "no_svg": {"de": "Keine SVG-Datei übergeben.", "en": "No SVG file received."},
+    "vpype_failed": {"de": "vpype ist fehlgeschlagen:\n{out}", "en": "vpype failed:\n{out}"},
+    "name_length": {"de": "Der Name muss 1–60 Zeichen lang sein.", "en": "The name must be 1–60 characters long."},
+    "bad_preset": {"de": "Ungültiger oder fehlender Wert: {e}", "en": "Invalid or missing value: {e}"},
+    "not_found": {"de": "Profil nicht gefunden.", "en": "Profile not found."},
+}
+
+
+def msg(key, **kw):
+    lang = request.accept_languages.best_match(["de", "en"], default="en")
+    return MESSAGES[key][lang].format(**kw)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 # Standardwerte = Werte aus plot.sh / vpype.toml / docs/calibrating.md des Originalrepos
@@ -106,10 +123,10 @@ def parse_settings(form):
             try:
                 s[key] = float(raw) if raw not in (None, "") else default
             except ValueError:
-                raise ValueError(f"Ungültiger Wert für {key}: {raw!r}")
+                raise ValueError(msg("invalid_value", key=key, raw=raw))
     s["area_w"], s["area_h"] = plot_area(s)
     if s["area_w"] <= 0 or s["area_h"] <= 0:
-        raise ValueError("Die plotbare Fläche ist leer. Nullpunkt, Stiftversatz und Verfahrweg prüfen.")
+        raise ValueError(msg("empty_area"))
     return s
 
 
@@ -162,6 +179,11 @@ def index():
     return send_from_directory(BASE / "static", "index.html")
 
 
+@app.get("/static/<path:name>")
+def static_file(name):
+    return send_from_directory(BASE / "static", name)
+
+
 @app.get("/api/defaults")
 def defaults():
     examples = sorted(p.name for p in EXAMPLES.glob("*.svg"))
@@ -205,12 +227,12 @@ def list_presets():
 def save_preset(name):
     name = name.strip()
     if not name or len(name) > 60:
-        return jsonify(error="Der Name muss 1–60 Zeichen lang sein."), 400
+        return jsonify(error=msg("name_length")), 400
     data = request.get_json(silent=True) or {}
     try:
         settings = {k: float(data[k]) for k in MACHINE_KEYS}
     except (KeyError, TypeError, ValueError) as e:
-        return jsonify(error=f"Ungültiger oder fehlender Wert: {e}"), 400
+        return jsonify(error=msg("bad_preset", e=e)), 400
     presets = load_presets()
     presets[name] = settings
     store_presets(presets)
@@ -221,7 +243,7 @@ def save_preset(name):
 def delete_preset(name):
     presets = load_presets()
     if presets.pop(name, None) is None:
-        return jsonify(error="Profil nicht gefunden."), 404
+        return jsonify(error=msg("not_found")), 404
     store_presets(presets)
     return jsonify(ok=True)
 
@@ -235,7 +257,7 @@ def example(name):
 def convert():
     upload = request.files.get("svg")
     if upload is None:
-        return jsonify(error="Keine SVG-Datei übergeben."), 400
+        return jsonify(error=msg("no_svg")), 400
     try:
         s = parse_settings(request.form)
     except ValueError as e:
@@ -252,7 +274,7 @@ def convert():
             capture_output=True, text=True, timeout=300,
         )
         if proc.returncode != 0 or not gcode_path.exists():
-            return jsonify(error="vpype ist fehlgeschlagen:\n" + (proc.stderr or proc.stdout)[-3000:]), 500
+            return jsonify(error=msg("vpype_failed", out=(proc.stderr or proc.stdout)[-3000:])), 500
         # Befehlszeile zur Anzeige, mit neutralen Dateinamen statt Temp-Pfaden
         shown = " ".join(
             "input.svg" if a == str(svg_path) else "output.gcode" if a == str(gcode_path) else a

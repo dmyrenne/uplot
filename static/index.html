@@ -24,7 +24,9 @@
   aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
           scrollbar-gutter: stable; }   /* Platz für die Scrollbar reservieren, damit nichts springt */
   main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
-  h1 { font-size: 17px; margin: 0 0 12px; }
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; }
+  .head select { width: auto; padding: 3px 6px; font-size: 12px; }
+  h1 { font-size: 17px; margin: 0; }
   h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
        margin: 18px 0 8px; font-weight: 600; }
   .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 12px; text-align: center;
@@ -90,87 +92,90 @@
 </head>
 <body>
 <aside>
-  <h1>μplot</h1>
+  <div class="head">
+    <h1>μplot</h1>
+    <select id="lang" data-i18n-aria="lang"></select>
+  </div>
 
   <div class="drop" id="drop">
-    <strong id="fileName">SVG hierher ziehen</strong>
-    oder klicken zum Auswählen
+    <strong id="fileName" data-i18n="drop.title"></strong>
+    <span data-i18n="drop.sub"></span>
     <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
   </div>
   <div class="row" style="margin-top:8px">
-    <select id="example"><option value="">Beispiel laden …</option></select>
+    <select id="example"><option value="" data-i18n="example"></option></select>
   </div>
 
   <form id="form">
-    <h2>Layout</h2>
+    <h2 data-i18n="h.layout"></h2>
     <div class="grid">
-      <label class="check"><input type="checkbox" name="fit"> An Plotfläche anpassen<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Skaliert die Grafik proportional">i</span></label>
-      <label>Rand (mm)<input type="number" name="margin" step="0.5" min="0"></label>
-      <label class="check"><input type="checkbox" name="center"> Zentrieren</label>
-      <label><span class="lt">Position X (mm)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Untere linke Ecke der Grafik, gemessen vom Nullpunkt 0|0 des Betts. Du kannst die Grafik auch in der Vorschau mit der Maus verschieben; das schaltet „Zentrieren“ aus.">i</span></span><input type="number" name="pos_x" step="0.5"></label>
-      <label><span class="lt">Position Y (mm)</span><input type="number" name="pos_y" step="0.5"></label>
-      <label>Drehen (°, im Uhrzeigersinn)<input type="number" name="angle" step="1" min="0" max="360"></label>
+      <label class="check"><input type="checkbox" name="fit"> <span data-i18n="fit"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.fit">i</span></label>
+      <label><span class="lt"><span data-i18n="margin"></span></span><input type="number" name="margin" step="0.5" min="0"></label>
+      <label class="check"><input type="checkbox" name="center"> <span data-i18n="center"></span></label>
+      <label><span class="lt"><span data-i18n="pos_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.pos">i</span></span><input type="number" name="pos_x" step="0.5"></label>
+      <label><span class="lt"><span data-i18n="pos_y"></span></span><input type="number" name="pos_y" step="0.5"></label>
+      <label><span class="lt"><span data-i18n="angle"></span></span><input type="number" name="angle" step="1" min="0" max="360"></label>
       <span></span>
-      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_x"> X spiegeln</label>
-      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_y"> Y spiegeln</label>
+      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_x"> <span data-i18n="mirror_x"></span></label>
+      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_y"> <span data-i18n="mirror_y"></span></label>
     </div>
 
-    <h2>Optimierung</h2>
+    <h2 data-i18n="h.optim"></h2>
     <div class="grid">
-      <label class="check"><input type="checkbox" name="merge_layers"> Alle Ebenen zusammenführen</label>
-      <label class="check"><input type="checkbox" name="linesort"> Linien sortieren (weniger Leerfahrten)</label>
-      <label>Linemerge-Toleranz (mm)<input type="number" name="linemerge_tol" step="0.05" min="0"></label>
-      <label>Vereinfachen (mm, 0 = aus)<input type="number" name="simplify_tol" step="0.05" min="0"></label>
-      <label>Min. Linienlänge (mm)<input type="number" name="min_length" step="0.1" min="0"></label>
+      <label class="check"><input type="checkbox" name="merge_layers"> <span data-i18n="merge_layers"></span></label>
+      <label class="check"><input type="checkbox" name="linesort"> <span data-i18n="linesort"></span></label>
+      <label><span class="lt"><span data-i18n="linemerge_tol"></span></span><input type="number" name="linemerge_tol" step="0.05" min="0"></label>
+      <label><span class="lt"><span data-i18n="simplify_tol"></span></span><input type="number" name="simplify_tol" step="0.05" min="0"></label>
+      <label><span class="lt"><span data-i18n="min_length"></span></span><input type="number" name="min_length" step="0.1" min="0"></label>
     </div>
     <div class="row" style="margin-top:8px">
-      <button type="button" id="draft">Entwurf-Preset</button>
-      <button type="button" id="normal">Normal-Preset</button>
+      <button type="button" id="draft" data-i18n="draft"></button>
+      <button type="button" id="normal" data-i18n="normal"></button>
     </div>
 
-    <h2>Drucker-Profil</h2>
+    <h2 data-i18n="h.profile"></h2>
     <div class="preset-row">
-      <select id="preset" aria-label="Drucker-Profil"></select>
-      <span class="badge" id="presetBadge" hidden>geändert</span>
+      <select id="preset" data-i18n-aria="h.profile"></select>
+      <span class="badge" id="presetBadge" data-i18n="modified" hidden></span>
     </div>
     <div class="row" style="margin-top:8px">
-      <button type="button" id="presetSave">Speichern</button>
-      <button type="button" id="presetSaveAs">Speichern unter …</button>
-      <button type="button" id="presetRevert">Verwerfen</button>
-      <button type="button" id="presetDelete">Löschen</button>
+      <button type="button" id="presetSave" data-i18n="save"></button>
+      <button type="button" id="presetSaveAs" data-i18n="saveAs"></button>
+      <button type="button" id="presetRevert" data-i18n="revert"></button>
+      <button type="button" id="presetDelete"></button>
     </div>
     <div class="row" id="saveAsRow" style="margin-top:8px" hidden>
-      <input type="text" id="presetName" maxlength="60" placeholder="Name, z. B. MK3S+ Gelstift" aria-label="Profilname">
-      <button type="button" class="primary" id="saveAsOk">OK</button>
-      <button type="button" id="saveAsCancel">Abbrechen</button>
+      <input type="text" id="presetName" maxlength="60" data-i18n-placeholder="presetName" data-i18n-aria="presetNameLabel">
+      <button type="button" class="primary" id="saveAsOk" data-i18n="ok"></button>
+      <button type="button" id="saveAsCancel" data-i18n="cancel"></button>
     </div>
-    <p class="hint" id="presetMsg">Ein Profil speichert Kalibrierung und Geschwindigkeiten.</p>
+    <p class="hint" id="presetMsg" data-i18n="preset.hint"></p>
 
     <details>
-      <summary>Kalibrierung</summary>
+      <summary data-i18n="h.calib"></summary>
       <div class="grid">
-        <label><span class="lt">Druckbett Breite (mm)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Größe des Druckbetts, beim MK3S+ 250 × 210 mm. Der Nullpunkt 0|0 ist die untere linke Ecke.">i</span></span><input type="number" name="bed_w" step="1" min="1"></label>
-        <label><span class="lt">Druckbett Höhe (mm)</span><input type="number" name="bed_h" step="1" min="1"></label>
-        <label><span class="lt">Düse im Nullpunkt X<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Druckerkoordinate der Düse, wenn der Stift genau auf der unteren linken Ecke des Betts (0|0) steht. Ermitteln: am Drucker über Settings → Move Axis den Stift auf die Ecke fahren und X/Y ablesen.">i</span></span><input type="number" name="offset_x" step="0.1"></label>
-        <label><span class="lt">Düse im Nullpunkt Y</span><input type="number" name="offset_y" step="0.1"></label>
-        <label><span class="lt">Sicherheitsabstand<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Abstand in mm. Wird rechts und hinten vom erreichbaren Bereich abgezogen, damit die Achsen nicht bis an den Anschlag fahren. In der Vorschau pink schraffiert.">i</span></span><input type="number" name="safety" step="0.5" min="0"></label>
+        <label><span class="lt"><span data-i18n="bed_w"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.bed">i</span></span><input type="number" name="bed_w" step="1" min="1"></label>
+        <label><span class="lt"><span data-i18n="bed_h"></span></span><input type="number" name="bed_h" step="1" min="1"></label>
+        <label><span class="lt"><span data-i18n="offset_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.offset">i</span></span><input type="number" name="offset_x" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="offset_y"></span></span><input type="number" name="offset_y" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="safety"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.safety">i</span></span><input type="number" name="safety" step="0.5" min="0"></label>
         <div class="derived" id="derived"></div>
-        <label><span class="lt">Z Stift unten<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe beim Zeichnen. Stift so weit absenken, dass er das Papier berührt, dann noch etwa 1 mm tiefer für leichten Andruck.">i</span></span><input type="number" name="z_down" step="0.1"></label>
-        <label><span class="lt">Z Stift oben<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe für Leerfahrten zwischen zwei Linien. Ein paar Millimeter über dem Papier reichen; je niedriger, desto schneller.">i</span></span><input type="number" name="z_up" step="0.1"></label>
-        <label><span class="lt">Z sichere Höhe<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe am Anfang (nach dem Referenzieren) und am Ende des Plots, damit der Stift über Klammern oder Magnete hinwegfährt. Zwischen den Linien wird nur auf „Z Stift oben“ angehoben.">i</span></span><input type="number" name="z_travel" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="z_down"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_down">i</span></span><input type="number" name="z_down" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="z_up"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_up">i</span></span><input type="number" name="z_up" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="z_travel"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_travel">i</span></span><input type="number" name="z_travel" step="0.1"></label>
         <span></span>
-        <label><span class="lt">Parkposition X<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Druckerkoordinate, zu der die Düse am Ende fährt, damit du das Papier gut entnehmen kannst.">i</span></span><input type="number" name="park_x" step="1"></label>
-        <label><span class="lt">Parkposition Y</span><input type="number" name="park_y" step="1"></label>
+        <label><span class="lt"><span data-i18n="park_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.park">i</span></span><input type="number" name="park_x" step="1"></label>
+        <label><span class="lt"><span data-i18n="park_y"></span></span><input type="number" name="park_y" step="1"></label>
       </div>
-      <p class="hint">Mehr zum Kalibrieren: <code>docs/calibrating.md</code> im Originalrepo. Einstellungen werden im Browser gespeichert.</p>
+      <p class="hint" data-i18n-html="calib.hint.html"></p>
     </details>
 
     <details>
-      <summary>Geschwindigkeiten</summary>
+      <summary data-i18n="h.speeds"></summary>
       <div class="grid">
-        <label><span class="lt">Zeichnen (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit, solange der Stift auf dem Papier ist. Langsamer gibt sauberere Linien; über USB kann es bei hohen Werten ruckeln.">i</span></span><input type="number" name="feed_draw" step="100"></label>
-        <label><span class="lt">Leerfahrt (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit der Fahrten mit angehobenem Stift.">i</span></span><input type="number" name="feed_travel" step="100"></label>
-        <label><span class="lt">Z-Achse (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit, mit der der Stift angehoben und abgesenkt wird.">i</span></span><input type="number" name="feed_z" step="10"></label>
+        <label><span class="lt"><span data-i18n="feed_draw"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_draw">i</span></span><input type="number" name="feed_draw" step="100"></label>
+        <label><span class="lt"><span data-i18n="feed_travel"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_travel">i</span></span><input type="number" name="feed_travel" step="100"></label>
+        <label><span class="lt"><span data-i18n="feed_z"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_z">i</span></span><input type="number" name="feed_z" step="10"></label>
       </div>
     </details>
   </form>
@@ -180,28 +185,31 @@
   <div class="toolbar">
     <div class="stats" id="stats"></div>
     <div class="spacer"></div>
-    <label class="check" style="grid-column:auto"><input type="checkbox" id="showTravel" checked> Leerfahrten</label>
-    <button id="fitView">Ansicht zurücksetzen</button>
-    <button class="primary" id="download" disabled>G-Code herunterladen</button>
+    <label class="check" style="grid-column:auto"><input type="checkbox" id="showTravel" checked> <span data-i18n="showTravel"></span></label>
+    <button id="fitView" data-i18n="fitView"></button>
+    <button class="primary" id="download" data-i18n="download" disabled></button>
   </div>
   <div class="stage" id="stage">
     <canvas id="canvas"></canvas>
-    <div class="empty" id="empty">Lade ein SVG, dann erscheint hier die Vorschau auf dem Druckbett.</div>
+    <div class="empty" id="empty" data-i18n="empty"></div>
   </div>
   <div class="bottom">
     <div id="messages"></div>
     <div class="legend" id="legend"></div>
-    <div class="row"><span style="font-size:12px;color:var(--muted);white-space:nowrap">Plot-Fortschritt</span>
+    <div class="row"><span style="font-size:12px;color:var(--muted);white-space:nowrap" data-i18n="progress"></span>
       <input type="range" id="progress" min="0" max="1000" value="1000"></div>
-    <footer class="foot">μplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low</footer>
+    <footer class="foot" data-i18n-html="footer.html"></footer>
   </div>
 </main>
 
 <div id="tip" role="tooltip"></div>
+<script src="static/i18n.js"></script>
 <script>
 const BED = { w: 250, h: 210 };          // Druckbett, Nullpunkt unten links; wird aus dem Formular aktualisiert
 const $ = (id) => document.getElementById(id);
 const form = $('form');
+// API-Aufrufe mit der gewählten Sprache, damit auch Fehlermeldungen des Servers passen
+const api = (url, opts = {}) => fetch(url, { ...opts, headers: { ...opts.headers, 'Accept-Language': LANG } });
 let DEFAULTS = {}, svgFile = null, result = null, moves = [], view = null;
 
 // ---------- Einstellungen ----------
@@ -227,6 +235,7 @@ function load() { try { return JSON.parse(localStorage.getItem('plotter-settings
 // ---------- Datei ----------
 function setFile(file) {
   svgFile = file;
+  delete $('fileName').dataset.i18n;
   $('fileName').textContent = file.name;
   convert();
 }
@@ -240,7 +249,7 @@ $('drop').ondrop = (e) => {
 };
 $('example').onchange = async (e) => {
   const name = e.target.value; if (!name) return;
-  const blob = await (await fetch('/api/example/' + encodeURIComponent(name))).blob();
+  const blob = await (await api('/api/example/' + encodeURIComponent(name))).blob();
   setFile(new File([blob], name, { type: 'image/svg+xml' }));
   e.target.value = '';
 };
@@ -253,14 +262,13 @@ function plotArea(s) {
   return { reachW, reachH, w: reachW - +s.safety, h: reachH - +s.safety };
 }
 function showDerived() {
-  const s = readForm(), a = plotArea(s), f1 = (v) => (Math.round(v * 10) / 10).toLocaleString('de-DE');
+  const s = readForm(), a = plotArea(s), f1 = (v) => (Math.round(v * 10) / 10).toLocaleString(LANG);
   const w = +s.bed_w || 250, h = +s.bed_h || 210;
   if (w !== BED.w || h !== BED.h) { BED.w = w; BED.h = h; view && fitView(); }
   const bad = a.w <= 0 || a.h <= 0;
   $('derived').className = 'derived' + (bad ? ' bad' : '');
-  $('derived').innerHTML = `Plotbare Fläche: <b>${f1(a.w)} × ${f1(a.h)} mm</b>` +
-    (bad ? '<br>Die Fläche ist leer. Nullpunkt und Sicherheitsabstand prüfen.' : '');
-  $('bedLegend').textContent = `Bett ${f1(BED.w)} × ${f1(BED.h)} mm, Nullpunkt unten links`;
+  $('derived').innerHTML = t('area.html', { w: f1(a.w), h: f1(a.h) }) + (bad ? '<br>' + t('area.empty') : '');
+  $('bedLegend').textContent = t('legend.bed', { w: f1(BED.w), h: f1(BED.h) });
 }
 form.addEventListener('input', () => { showDerived(); draw(); });
 
@@ -309,16 +317,16 @@ function updatePresetUI() {
   $('presetBadge').hidden = !mod;
   $('presetSave').disabled = !p || !mod;
   $('presetRevert').disabled = !mod;
-  $('presetDelete').textContent = p?.builtin ? 'Zurücksetzen' : 'Löschen';
+  $('presetDelete').textContent = t(p?.builtin ? 'reset' : 'delete');
   $('presetDelete').disabled = !p || (p.builtin && !p.customized);
-  $('presetDelete').title = p?.builtin ? 'Standardprofil auf die Werkseinstellung zurücksetzen' : '';
+  $('presetDelete').title = p?.builtin ? t('resetTitle') : '';
 }
 async function loadPresets(select) {
-  const data = await (await fetch('/api/presets')).json();
+  const data = await (await api('/api/presets')).json();
   PRESETS = data.presets;
   MACHINE_KEYS = Object.keys(presetByName(data.builtin).settings);
   $('preset').innerHTML = '';
-  for (const p of PRESETS) $('preset').add(new Option(p.builtin ? `${p.name} (Standard)` : p.name, p.name));
+  for (const p of PRESETS) $('preset').add(new Option(p.builtin ? t('builtin', { name: p.name }) : p.name, p.name));
   $('preset').value = presetByName(select) ? select : data.builtin;
   try { localStorage.setItem('plotter-preset', $('preset').value); } catch {}
   updatePresetUI();
@@ -335,15 +343,15 @@ $('preset').onchange = () => {
     $('preset').value = lastPreset;                      // zum Vergleichen kurz zurück
     const mod = isModified();
     $('preset').value = cur;
-    if (mod && !confirm(`Ungespeicherte Änderungen an „${prev.name}“ verwerfen?`)) { $('preset').value = lastPreset; return; }
+    if (mod && !confirm(t('confirm.discard', { name: prev.name }))) { $('preset').value = lastPreset; return; }
   }
   lastPreset = $('preset').value;
   try { localStorage.setItem('plotter-preset', lastPreset); } catch {}
   applyPreset(lastPreset);
-  presetMsg(`Profil „${lastPreset}“ geladen.`);
+  presetMsg(t('msg.loaded', { name: lastPreset }));
 };
 async function putPreset(name) {
-  const res = await fetch('/api/presets/' + encodeURIComponent(name), {
+  const res = await api('/api/presets/' + encodeURIComponent(name), {
     method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(machineValues()),
   });
   const data = await res.json();
@@ -351,7 +359,7 @@ async function putPreset(name) {
 }
 $('presetSave').onclick = async () => {
   const name = $('preset').value;
-  try { await putPreset(name); await loadPresets(name); presetMsg(`„${name}“ gespeichert.`); }
+  try { await putPreset(name); await loadPresets(name); presetMsg(t('msg.saved', { name })); }
   catch (e) { presetMsg(e.message, true); }
 };
 $('presetSaveAs').onclick = () => {
@@ -364,28 +372,28 @@ const closeSaveAs = () => { $('saveAsRow').hidden = true; };
 $('saveAsCancel').onclick = closeSaveAs;
 $('saveAsOk').onclick = async () => {
   const name = $('presetName').value.trim();
-  if (!name) { presetMsg('Bitte einen Namen eingeben.', true); return; }
+  if (!name) { presetMsg(t('msg.needName'), true); return; }
   const existing = presetByName(name);
-  if (existing && !confirm(`Profil „${name}“ gibt es schon. Überschreiben?`)) return;
-  try { await putPreset(name); await loadPresets(name); lastPreset = name; closeSaveAs(); presetMsg(`„${name}“ gespeichert.`); }
+  if (existing && !confirm(t('confirm.overwrite', { name }))) return;
+  try { await putPreset(name); await loadPresets(name); lastPreset = name; closeSaveAs(); presetMsg(t('msg.saved', { name })); }
   catch (e) { presetMsg(e.message, true); }
 };
 $('presetName').onkeydown = (e) => {
   if (e.key === 'Enter') { e.preventDefault(); $('saveAsOk').click(); }
   if (e.key === 'Escape') closeSaveAs();
 };
-$('presetRevert').onclick = () => { applyPreset($('preset').value); presetMsg('Änderungen verworfen.'); };
+$('presetRevert').onclick = () => { applyPreset($('preset').value); presetMsg(t('msg.discarded')); };
 $('presetDelete').onclick = async () => {
   const name = $('preset').value, builtin = currentPreset()?.builtin;
-  if (!confirm(builtin ? `„${name}“ auf die Werkseinstellung zurücksetzen?` : `Profil „${name}“ löschen?`)) return;
-  const res = await fetch('/api/presets/' + encodeURIComponent(name), { method: 'DELETE' });
+  if (!confirm(t(builtin ? 'confirm.reset' : 'confirm.delete', { name }))) return;
+  const res = await api('/api/presets/' + encodeURIComponent(name), { method: 'DELETE' });
   if (!res.ok) { presetMsg((await res.json()).error, true); return; }
   if (builtin) {
     await loadPresets(name); applyPreset(name);
-    presetMsg(`„${name}“ auf die Werkseinstellung zurückgesetzt.`); return;
+    presetMsg(t('msg.reset', { name })); return;
   }
   await loadPresets(null); lastPreset = $('preset').value;
-  presetMsg(`„${name}“ gelöscht. Die Werte sind noch eingestellt und lassen sich mit „Speichern unter …“ neu sichern.`);
+  presetMsg(t('msg.deleted', { name }));
 };
 form.addEventListener('input', updatePresetUI);
 $('draft').onclick = () => { writeForm({ simplify_tol: 0.5, linemerge_tol: 0.5, linesort: true }); save(); convert(); };
@@ -398,10 +406,10 @@ async function convert() {
   fd.append('svg', svgFile);
   for (const [k, v] of Object.entries(readForm())) fd.append(k, typeof v === 'boolean' ? (v ? '1' : '0') : v);
   $('download').disabled = true;
-  showMessages(['Berechne …'], true);
+  showMessages([t('calculating')], true);
   let data;
   try {
-    const res = await fetch('/api/convert', { method: 'POST', body: fd });
+    const res = await api('/api/convert', { method: 'POST', body: fd });
     data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
   } catch (err) {
@@ -467,18 +475,18 @@ function shift() {
 
 function renderStats() {
   if (!moves.length) { $('stats').innerHTML = ''; return; }
-  let drawLen = 0, travelLen = 0, t = 0, lifts = 0, prevDraw = false;
+  let drawLen = 0, travelLen = 0, secs = 0, lifts = 0, prevDraw = false;
   for (const m of moves) {
-    t += m.t;
+    secs += m.t;
     if (m.len === undefined) continue;
     if (m.draw) { drawLen += m.len; if (!prevDraw) lifts++; } else travelLen += m.len;
     prevDraw = m.draw;
   }
   const fmtLen = (mm) => mm >= 1000 ? (mm / 1000).toFixed(2) + ' m' : mm.toFixed(0) + ' mm';
-  const min = Math.round(t / 60);
+  const min = Math.round(secs / 60);
   const items = [
-    ['Zeichnen', fmtLen(drawLen)], ['Leerfahrt', fmtLen(travelLen)], ['Linienzüge', lifts],
-    ['Dauer ca.', min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`],
+    [t('stat.draw'), fmtLen(drawLen)], [t('stat.travel'), fmtLen(travelLen)], [t('stat.paths'), lifts],
+    [t('stat.time'), min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`],
   ];
   $('stats').innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
 }
@@ -490,17 +498,13 @@ function checkBounds(s) {
     bx0 = Math.min(bx0, m.x0, m.x1); bx1 = Math.max(bx1, m.x0, m.x1);
     by0 = Math.min(by0, m.y0, m.y1); by1 = Math.max(by1, m.y0, m.y1);
   }
-  if (bx0 === Infinity) return ['Das SVG enthält keine zeichenbaren Linien.'];
+  if (bx0 === Infinity) return [t('bounds.none')];
   const eps = 0.01, out = [];
   const px0 = bx0 - s.offset_x, px1 = bx1 - s.offset_x, py0 = by0 - s.offset_y, py1 = by1 - s.offset_y;
   if (px0 < -eps || py0 < -eps || px1 > BED.w + eps || py1 > BED.h + eps)
-    out.push(`Achtung: Der Stift würde außerhalb des Druckbetts zeichnen ` +
-      `(X ${px0.toFixed(1)}–${px1.toFixed(1)}, Y ${py0.toFixed(1)}–${py1.toFixed(1)} mm auf dem Bett, Bett ${BED.w}×${BED.h} mm). ` +
-      `Nullpunkt prüfen.`);
+    out.push(t('bounds.bed', { x0: px0.toFixed(1), x1: px1.toFixed(1), y0: py0.toFixed(1), y1: py1.toFixed(1), w: BED.w, h: BED.h }));
   if (bx0 < minX - eps || by0 < minY - eps || bx1 > maxX + eps || by1 > maxY + eps)
-    out.push(`Achtung: Die Zeichnung ragt über die plotbare Fläche hinaus ` +
-      `(X ${bx0.toFixed(1)}–${bx1.toFixed(1)}, Y ${by0.toFixed(1)}–${by1.toFixed(1)} mm; erlaubt X ${minX}–${maxX}, Y ${minY}–${maxY}). ` +
-      `Tipp: Grafik verschieben, „An Plotfläche anpassen“ oder „Zentrieren“ aktivieren.`);
+    out.push(t('bounds.area', { x0: bx0.toFixed(1), x1: bx1.toFixed(1), y0: by0.toFixed(1), y1: by1.toFixed(1), minX, maxX, minY, maxY }));
   return out;
 }
 
@@ -543,7 +547,7 @@ function draw() {
   ctx.beginPath(); ctx.rect(sx(0), sy(BED.h), BED.w * view.k, BED.h * view.k); ctx.clip();
   ctx.strokeStyle = css('--hatch'); ctx.lineWidth = 1; ctx.beginPath();
   const bw = BED.w * view.k, bh = BED.h * view.k;
-  for (let t = -bh; t < bw; t += 8) { ctx.moveTo(sx(0) + t, sy(0)); ctx.lineTo(sx(0) + t + bh, sy(BED.h)); }
+  for (let d = -bh; d < bw; d += 8) { ctx.moveTo(sx(0) + d, sy(0)); ctx.lineTo(sx(0) + d + bh, sy(BED.h)); }
   ctx.stroke(); ctx.restore();
   // 5-cm-Raster wie auf dem Smooth Sheet + Achsbeschriftung
   ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.beginPath();
@@ -567,7 +571,7 @@ function draw() {
     ctx.save();
     ctx.beginPath(); ctx.rect(sx(0), sy(rh), rw * view.k, rh * view.k); ctx.clip();
     ctx.strokeStyle = css('--safety'); ctx.lineWidth = 1; ctx.beginPath();
-    for (let t = -rh * view.k; t < rw * view.k; t += 6) { ctx.moveTo(sx(0) + t, sy(0)); ctx.lineTo(sx(0) + t + rh * view.k, sy(rh)); }
+    for (let d = -rh * view.k; d < rw * view.k; d += 6) { ctx.moveTo(sx(0) + d, sy(0)); ctx.lineTo(sx(0) + d + rh * view.k, sy(rh)); }
     ctx.stroke(); ctx.restore();
   }
   if (area.w > 0 && area.h > 0) {
@@ -620,9 +624,9 @@ function draw() {
   ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
   ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
   const fmt = (v) => Math.round(v * 10) / 10;
-  ctx.fillText(`Düse ${fmt(ox)} | ${fmt(oy)}`, nx + 10, ny - 6);
+  ctx.fillText(t('canvas.nozzle', { x: fmt(ox), y: fmt(oy) }), nx + 10, ny - 6);
   ctx.textBaseline = 'bottom';
-  ctx.fillText('Stift 0 | 0', px + 14, py - 4);
+  ctx.fillText(t('canvas.pen'), px + 14, py - 4);
 }
 
 // Zoom & Pan
@@ -680,11 +684,11 @@ new ResizeObserver(() => { fitView(); draw(); }).observe($('stage'));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 
 $('legend').innerHTML = `
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="var(--head)"/></svg>Düse im Nullpunkt (Druckerkoordinate)</span>
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 8H16M8 0V16" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--head)" stroke-width="1.5"/></svg>Stift auf dem Bett</span>
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 8H15" stroke="var(--travel)" stroke-dasharray="3 3"/></svg>Leerfahrt</span>
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--area)" stroke="var(--line)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--safety)"/></svg>Sicherheitsabstand</span>
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg>für den Stift nicht erreichbar</span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="var(--head)"/></svg><span data-i18n="legend.nozzle"></span></span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 8H16M8 0V16" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--head)" stroke-width="1.5"/></svg><span data-i18n="legend.pen"></span></span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 8H15" stroke="var(--travel)" stroke-dasharray="3 3"/></svg><span data-i18n="legend.travel"></span></span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--area)" stroke="var(--line)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--safety)"/></svg><span data-i18n="legend.safety"></span></span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg><span data-i18n="legend.unreachable"></span></span>
   <span id="bedLegend"></span>`;
 
 // ---------- Download ----------
@@ -697,9 +701,28 @@ $('download').onclick = () => {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 };
 
+// ---------- Sprache ----------
+for (const [code, name] of Object.entries(LANGS)) $('lang').add(new Option(name, code));
+$('lang').value = LANG;
+function relabel() {
+  applyI18n();
+  const cur = $('preset').value;   // Profilnamen (Standard-Zusatz) neu beschriften
+  for (const o of $('preset').options) { const p = presetByName(o.value); o.text = p.builtin ? t('builtin', { name: p.name }) : p.name; }
+  $('preset').value = cur;
+  updatePresetUI(); showDerived(); renderStats();
+  if (result) showMessages(checkBounds(result.settings));
+  draw();
+}
+$('lang').onchange = () => {
+  LANG = $('lang').value;
+  try { localStorage.setItem('uplot-lang', LANG); } catch {}
+  relabel();
+};
+applyI18n();
+
 // ---------- Start ----------
 (async () => {
-  const data = await (await fetch('/api/defaults')).json();
+  const data = await (await api('/api/defaults')).json();
   DEFAULTS = data.defaults;
   writeForm({ ...DEFAULTS, ...load() });
   syncMargin(); showDerived(); fitView();

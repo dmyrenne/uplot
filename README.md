@@ -62,6 +62,10 @@ Die Profile liegen hier in `presets.json` neben `app.py` (oder im Verzeichnis au
   es lässt sich überschreiben und mit „Zurücksetzen“ wiederherstellen. Profile speichert der Server (siehe
   Installation), die übrigen Einstellungen der Browser.
 
+- Sprache: Deutsch und Englisch, umschaltbar oben rechts in der Seitenleiste. Beim ersten Aufruf gilt die
+  Browsersprache. Die Texte liegen in `static/i18n.js`; für eine weitere Sprache dort einen Block kopieren,
+  übersetzen und in `LANGS` eintragen. Fehlermeldungen des Servers stehen in `MESSAGES` in `app.py`.
+
 ## Hinweise
 
 - Beim Streamen über USB kann der Drucker bei vielen kurzen Segmenten und hoher Geschwindigkeit ruckeln.

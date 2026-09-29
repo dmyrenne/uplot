@@ -1,0 +1,246 @@
+// Übersetzungen für die Oberfläche. Neue Sprache: Block kopieren, Schlüssel übersetzen, in LANGS eintragen.
+// Platzhalter in {geschweiften Klammern} werden von t() ersetzt; Schlüssel mit HTML sind mit .html markiert.
+const LANGS = { de: 'Deutsch', en: 'English' };
+
+const I18N = {
+  de: {
+    'lang': 'Sprache',
+    'drop.title': 'SVG hierher ziehen',
+    'drop.sub': 'oder klicken zum Auswählen',
+    'example': 'Beispiel laden …',
+
+    'h.layout': 'Layout',
+    'fit': 'An Plotfläche anpassen',
+    'tip.fit': 'Skaliert die Grafik proportional',
+    'margin': 'Rand (mm)',
+    'center': 'Zentrieren',
+    'pos_x': 'Position X (mm)',
+    'pos_y': 'Position Y (mm)',
+    'tip.pos': 'Untere linke Ecke der Grafik, gemessen vom Nullpunkt 0|0 des Betts. Du kannst die Grafik auch in der Vorschau mit der Maus verschieben; das schaltet „Zentrieren“ aus.',
+    'angle': 'Drehen (°, im Uhrzeigersinn)',
+    'mirror_x': 'X spiegeln',
+    'mirror_y': 'Y spiegeln',
+
+    'h.optim': 'Optimierung',
+    'merge_layers': 'Alle Ebenen zusammenführen',
+    'linesort': 'Linien sortieren (weniger Leerfahrten)',
+    'linemerge_tol': 'Linemerge-Toleranz (mm)',
+    'simplify_tol': 'Vereinfachen (mm, 0 = aus)',
+    'min_length': 'Min. Linienlänge (mm)',
+    'draft': 'Entwurf-Preset',
+    'normal': 'Normal-Preset',
+
+    'h.profile': 'Drucker-Profil',
+    'modified': 'geändert',
+    'save': 'Speichern',
+    'saveAs': 'Speichern unter …',
+    'revert': 'Verwerfen',
+    'delete': 'Löschen',
+    'reset': 'Zurücksetzen',
+    'resetTitle': 'Standardprofil auf die Werkseinstellung zurücksetzen',
+    'builtin': '{name} (Standard)',
+    'presetName': 'Name, z. B. MK3S+ Gelstift',
+    'presetNameLabel': 'Profilname',
+    'ok': 'OK',
+    'cancel': 'Abbrechen',
+    'preset.hint': 'Ein Profil speichert Kalibrierung und Geschwindigkeiten.',
+    'confirm.discard': 'Ungespeicherte Änderungen an „{name}“ verwerfen?',
+    'confirm.overwrite': 'Profil „{name}“ gibt es schon. Überschreiben?',
+    'confirm.reset': '„{name}“ auf die Werkseinstellung zurücksetzen?',
+    'confirm.delete': 'Profil „{name}“ löschen?',
+    'msg.loaded': 'Profil „{name}“ geladen.',
+    'msg.saved': '„{name}“ gespeichert.',
+    'msg.needName': 'Bitte einen Namen eingeben.',
+    'msg.discarded': 'Änderungen verworfen.',
+    'msg.reset': '„{name}“ auf die Werkseinstellung zurückgesetzt.',
+    'msg.deleted': '„{name}“ gelöscht. Die Werte sind noch eingestellt und lassen sich mit „Speichern unter …“ neu sichern.',
+
+    'h.calib': 'Kalibrierung',
+    'bed_w': 'Druckbett Breite (mm)',
+    'bed_h': 'Druckbett Höhe (mm)',
+    'tip.bed': 'Größe des Druckbetts, beim MK3S+ 250 × 210 mm. Der Nullpunkt 0|0 ist die untere linke Ecke.',
+    'offset_x': 'Düse im Nullpunkt X',
+    'offset_y': 'Düse im Nullpunkt Y',
+    'tip.offset': 'Druckerkoordinate der Düse, wenn der Stift genau auf der unteren linken Ecke des Betts (0|0) steht. Ermitteln: am Drucker über Settings → Move Axis den Stift auf die Ecke fahren und X/Y ablesen.',
+    'safety': 'Sicherheitsabstand',
+    'tip.safety': 'Abstand in mm. Wird rechts und hinten vom erreichbaren Bereich abgezogen, damit die Achsen nicht bis an den Anschlag fahren. In der Vorschau pink schraffiert.',
+    'area.html': 'Plotbare Fläche: <b>{w} × {h} mm</b>',
+    'area.empty': 'Die Fläche ist leer. Nullpunkt und Sicherheitsabstand prüfen.',
+    'z_down': 'Z Stift unten',
+    'tip.z_down': 'Z-Höhe beim Zeichnen. Stift so weit absenken, dass er das Papier berührt, dann noch etwa 1 mm tiefer für leichten Andruck.',
+    'z_up': 'Z Stift oben',
+    'tip.z_up': 'Z-Höhe für Leerfahrten zwischen zwei Linien. Ein paar Millimeter über dem Papier reichen; je niedriger, desto schneller.',
+    'z_travel': 'Z sichere Höhe',
+    'tip.z_travel': 'Z-Höhe am Anfang (nach dem Referenzieren) und am Ende des Plots, damit der Stift über Klammern oder Magnete hinwegfährt. Zwischen den Linien wird nur auf „Z Stift oben“ angehoben.',
+    'park_x': 'Parkposition X',
+    'park_y': 'Parkposition Y',
+    'tip.park': 'Druckerkoordinate, zu der die Düse am Ende fährt, damit du das Papier gut entnehmen kannst.',
+    'calib.hint.html': 'Mehr zum Kalibrieren: <a href="https://github.com/brianlow/plotter/blob/main/docs/calibrating.md" target="_blank" rel="noopener">docs/calibrating.md</a> im Originalrepo. Einstellungen werden im Browser gespeichert.',
+
+    'h.speeds': 'Geschwindigkeiten',
+    'feed_draw': 'Zeichnen (mm/min)',
+    'tip.feed_draw': 'Geschwindigkeit, solange der Stift auf dem Papier ist. Langsamer gibt sauberere Linien; über USB kann es bei hohen Werten ruckeln.',
+    'feed_travel': 'Leerfahrt (mm/min)',
+    'tip.feed_travel': 'Geschwindigkeit der Fahrten mit angehobenem Stift.',
+    'feed_z': 'Z-Achse (mm/min)',
+    'tip.feed_z': 'Geschwindigkeit, mit der der Stift angehoben und abgesenkt wird.',
+
+    'showTravel': 'Leerfahrten',
+    'fitView': 'Ansicht zurücksetzen',
+    'download': 'G-Code herunterladen',
+    'empty': 'Lade ein SVG, dann erscheint hier die Vorschau auf dem Druckbett.',
+    'progress': 'Plot-Fortschritt',
+    'footer.html': 'μplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low',
+
+    'calculating': 'Berechne …',
+    'stat.draw': 'Zeichnen',
+    'stat.travel': 'Leerfahrt',
+    'stat.paths': 'Linienzüge',
+    'stat.time': 'Dauer ca.',
+    'bounds.none': 'Das SVG enthält keine zeichenbaren Linien.',
+    'bounds.bed': 'Achtung: Der Stift würde außerhalb des Druckbetts zeichnen (X {x0}–{x1}, Y {y0}–{y1} mm auf dem Bett, Bett {w}×{h} mm). Nullpunkt prüfen.',
+    'bounds.area': 'Achtung: Die Zeichnung ragt über die plotbare Fläche hinaus (X {x0}–{x1}, Y {y0}–{y1} mm; erlaubt X {minX}–{maxX}, Y {minY}–{maxY}). Tipp: Grafik verschieben, „An Plotfläche anpassen“ oder „Zentrieren“ aktivieren.',
+
+    'canvas.nozzle': 'Düse {x} | {y}',
+    'canvas.pen': 'Stift 0 | 0',
+    'legend.nozzle': 'Düse im Nullpunkt (Druckerkoordinate)',
+    'legend.pen': 'Stift auf dem Bett',
+    'legend.travel': 'Leerfahrt',
+    'legend.safety': 'Sicherheitsabstand',
+    'legend.unreachable': 'für den Stift nicht erreichbar',
+    'legend.bed': 'Bett {w} × {h} mm, Nullpunkt unten links',
+  },
+
+  en: {
+    'lang': 'Language',
+    'drop.title': 'Drop an SVG here',
+    'drop.sub': 'or click to choose a file',
+    'example': 'Load example …',
+
+    'h.layout': 'Layout',
+    'fit': 'Fit to plot area',
+    'tip.fit': 'Scales the artwork proportionally',
+    'margin': 'Margin (mm)',
+    'center': 'Center',
+    'pos_x': 'Position X (mm)',
+    'pos_y': 'Position Y (mm)',
+    'tip.pos': 'Lower left corner of the artwork, measured from the bed origin 0|0. You can also drag the artwork in the preview; this turns off “Center”.',
+    'angle': 'Rotate (°, clockwise)',
+    'mirror_x': 'Mirror X',
+    'mirror_y': 'Mirror Y',
+
+    'h.optim': 'Optimization',
+    'merge_layers': 'Merge all layers',
+    'linesort': 'Sort lines (fewer travel moves)',
+    'linemerge_tol': 'Line merge tolerance (mm)',
+    'simplify_tol': 'Simplify (mm, 0 = off)',
+    'min_length': 'Min. line length (mm)',
+    'draft': 'Draft preset',
+    'normal': 'Normal preset',
+
+    'h.profile': 'Printer profile',
+    'modified': 'modified',
+    'save': 'Save',
+    'saveAs': 'Save as …',
+    'revert': 'Discard',
+    'delete': 'Delete',
+    'reset': 'Reset',
+    'resetTitle': 'Reset the default profile to factory settings',
+    'builtin': '{name} (default)',
+    'presetName': 'Name, e.g. MK3S+ gel pen',
+    'presetNameLabel': 'Profile name',
+    'ok': 'OK',
+    'cancel': 'Cancel',
+    'preset.hint': 'A profile stores calibration and speeds.',
+    'confirm.discard': 'Discard unsaved changes to “{name}”?',
+    'confirm.overwrite': 'Profile “{name}” already exists. Overwrite?',
+    'confirm.reset': 'Reset “{name}” to factory settings?',
+    'confirm.delete': 'Delete profile “{name}”?',
+    'msg.loaded': 'Profile “{name}” loaded.',
+    'msg.saved': '“{name}” saved.',
+    'msg.needName': 'Please enter a name.',
+    'msg.discarded': 'Changes discarded.',
+    'msg.reset': '“{name}” reset to factory settings.',
+    'msg.deleted': '“{name}” deleted. The values are still set and can be saved again with “Save as …”.',
+
+    'h.calib': 'Calibration',
+    'bed_w': 'Bed width (mm)',
+    'bed_h': 'Bed height (mm)',
+    'tip.bed': 'Size of the print bed, 250 × 210 mm on the MK3S+. The origin 0|0 is the lower left corner.',
+    'offset_x': 'Nozzle at origin X',
+    'offset_y': 'Nozzle at origin Y',
+    'tip.offset': 'Printer coordinate of the nozzle when the pen sits exactly on the lower left corner of the bed (0|0). To find it, use Settings → Move Axis on the printer to move the pen onto the corner and read off X/Y.',
+    'safety': 'Safety margin',
+    'tip.safety': 'Distance in mm, subtracted from the right and back of the reachable area so the axes don’t run into their end stops. Hatched pink in the preview.',
+    'area.html': 'Plot area: <b>{w} × {h} mm</b>',
+    'area.empty': 'The area is empty. Check the origin and safety margin.',
+    'z_down': 'Z pen down',
+    'tip.z_down': 'Z height while drawing. Lower the pen until it touches the paper, then about 1 mm further for light pressure.',
+    'z_up': 'Z pen up',
+    'tip.z_up': 'Z height for travel moves between lines. A few millimetres above the paper is enough; lower is faster.',
+    'z_travel': 'Z safe height',
+    'tip.z_travel': 'Z height at the start (after homing) and at the end of the plot, so the pen clears clips or magnets. Between lines the pen is only raised to “Z pen up”.',
+    'park_x': 'Park position X',
+    'park_y': 'Park position Y',
+    'tip.park': 'Printer coordinate the nozzle moves to at the end, so you can easily remove the paper.',
+    'calib.hint.html': 'More on calibrating: <a href="https://github.com/brianlow/plotter/blob/main/docs/calibrating.md" target="_blank" rel="noopener">docs/calibrating.md</a> in the original repo. Settings are saved in the browser.',
+
+    'h.speeds': 'Speeds',
+    'feed_draw': 'Drawing (mm/min)',
+    'tip.feed_draw': 'Speed while the pen is on the paper. Slower gives cleaner lines; over USB, high values can cause stuttering.',
+    'feed_travel': 'Travel (mm/min)',
+    'tip.feed_travel': 'Speed of moves with the pen raised.',
+    'feed_z': 'Z axis (mm/min)',
+    'tip.feed_z': 'Speed at which the pen is raised and lowered.',
+
+    'showTravel': 'Travel moves',
+    'fitView': 'Reset view',
+    'download': 'Download G-code',
+    'empty': 'Load an SVG to see a preview on the print bed.',
+    'progress': 'Plot progress',
+    'footer.html': 'μplot by Daniel Myrenne · based on <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> by Brian Low',
+
+    'calculating': 'Calculating …',
+    'stat.draw': 'Drawing',
+    'stat.travel': 'Travel',
+    'stat.paths': 'Paths',
+    'stat.time': 'Est. time',
+    'bounds.none': 'The SVG contains no drawable lines.',
+    'bounds.bed': 'Warning: the pen would draw outside the print bed (X {x0}–{x1}, Y {y0}–{y1} mm on the bed, bed {w}×{h} mm). Check the origin.',
+    'bounds.area': 'Warning: the drawing extends beyond the plot area (X {x0}–{x1}, Y {y0}–{y1} mm; allowed X {minX}–{maxX}, Y {minY}–{maxY}). Tip: move the artwork, or turn on “Fit to plot area” or “Center”.',
+
+    'canvas.nozzle': 'Nozzle {x} | {y}',
+    'canvas.pen': 'Pen 0 | 0',
+    'legend.nozzle': 'Nozzle at origin (printer coordinate)',
+    'legend.pen': 'Pen on the bed',
+    'legend.travel': 'Travel move',
+    'legend.safety': 'Safety margin',
+    'legend.unreachable': 'not reachable by the pen',
+    'legend.bed': 'Bed {w} × {h} mm, origin at lower left',
+  },
+};
+
+function pickLang() {
+  try { const l = localStorage.getItem('uplot-lang'); if (l in I18N) return l; } catch {}
+  for (const l of navigator.languages || [navigator.language]) {
+    const base = String(l).slice(0, 2).toLowerCase();
+    if (base in I18N) return base;
+  }
+  return 'en';
+}
+let LANG = pickLang();
+
+function t(key, vars = {}) {
+  const s = I18N[LANG][key] ?? I18N.de[key] ?? key;
+  return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
+}
+
+// Statische Texte: data-i18n (Text), data-i18n-html, data-i18n-tip, data-i18n-placeholder, data-i18n-aria
+function applyI18n(root = document) {
+  document.documentElement.lang = LANG;
+  for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
+  for (const el of root.querySelectorAll('[data-i18n-html]')) el.innerHTML = t(el.dataset.i18nHtml);
+  for (const el of root.querySelectorAll('[data-i18n-tip]')) el.dataset.tip = t(el.dataset.i18nTip);
+  for (const el of root.querySelectorAll('[data-i18n-placeholder]')) el.placeholder = t(el.dataset.i18nPlaceholder);
+  for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+}
