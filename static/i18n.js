@@ -98,7 +98,7 @@ const I18N = {
     'download': 'G-Code herunterladen',
     'empty': 'Lade ein SVG, dann erscheint hier die Vorschau auf dem Druckbett.',
     'progress': 'Plot-Fortschritt',
-    'footer.html': 'µplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low',
+    'footer.html': 'µplot by Daniel Myrenne · <a href="https://github.com/dmyrenne/uplot" target="_blank" rel="noopener">GitHub</a> · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low',
 
     'calculating': 'Berechne …',
     'stat.draw': 'Zeichnen',
@@ -214,7 +214,7 @@ const I18N = {
     'download': 'Download G-code',
     'empty': 'Load an SVG to see a preview on the print bed.',
     'progress': 'Plot progress',
-    'footer.html': 'µplot by Daniel Myrenne · based on <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> by Brian Low',
+    'footer.html': 'µplot by Daniel Myrenne · <a href="https://github.com/dmyrenne/uplot" target="_blank" rel="noopener">GitHub</a> · based on <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> by Brian Low',
 
     'calculating': 'Calculating …',
     'stat.draw': 'Drawing',
