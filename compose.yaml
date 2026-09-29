@@ -1,3 +1,6 @@
+# Fester Projektname: Container und Volume heißen gleich, egal wie der Ordner heißt oder wo er liegt
+name: uplot
+
 services:
   uplot:
     image: ghcr.io/dmyrenne/uplot:latest
