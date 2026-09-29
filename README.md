@@ -8,7 +8,7 @@ Der G-Code entsteht mit [vpype](https://github.com/abey79/vpype) und [vpype-gcod
 ## Installation mit Docker (empfohlen)
 
 Voraussetzung: Docker (Podman geht ebenso). Das fertige Image liegt in der GitHub Container Registry
-(derzeit nur für `linux/amd64`):
+(für `linux/amd64` und `linux/arm64`, z. B. Raspberry Pi 4/5):
 
     docker run -d --name uplot -p 127.0.0.1:5055:5055 -v uplot-data:/data --restart unless-stopped \
       ghcr.io/dmyrenne/uplot:latest
@@ -18,7 +18,7 @@ Oder mit Compose aus diesem Repo:
     git clone https://github.com/dmyrenne/uplot.git
     cd uplot
     docker compose up -d            # lädt ghcr.io/dmyrenne/uplot:latest
-    docker compose up -d --build    # alternativ selbst aus dem Quellcode bauen (z. B. auf ARM)
+    docker compose up -d --build    # alternativ selbst aus dem Quellcode bauen
 
 Danach läuft μplot unter http://127.0.0.1:5055. Das Image enthält die Beispiel-SVGs aus brianlow/plotter;
 sie stehen unter „Beispiel laden …“ zur Auswahl.
