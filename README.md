@@ -5,6 +5,10 @@ Sie baut auf dem Workflow aus [brianlow/plotter](https://github.com/brianlow/plo
 ersetzt dessen `plot.sh`, `plot-draft.sh` und `vpype.toml` durch eine grafische Oberfläche.
 Der G-Code entsteht mit [vpype](https://github.com/abey79/vpype) und [vpype-gcode](https://github.com/plottertools/vpype-gcode).
 
+![µplot mit einem Mesh-Blob aus µgen: Vorschau auf dem Druckbett in Pink, links Layout, Optimierung und Stift](docs/screenshot.png)
+
+*Vorschau eines Mesh-Blobs aus [µgen](https://github.com/dmyrenne/ugen) mit pinkem 0,3-mm-Stift.*
+
 ## Installation mit Docker (empfohlen)
 
 Voraussetzung: Docker (Podman geht ebenso). Das fertige Image liegt in der GitHub Container Registry
