@@ -97,3 +97,7 @@ Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neb
 
 μplot by Daniel Myrenne. Idee, G-Code-Aufbau und Kalibrierverfahren stammen aus
 [brianlow/plotter](https://github.com/brianlow/plotter) von Brian Low.
+
+Schriften: [Space Grotesk](https://github.com/floriankarsten/space-grotesk) und
+[JetBrains Mono](https://github.com/JetBrains/JetBrainsMono), beide unter der SIL Open Font License
+(`static/fonts/OFL-*.txt`). Sie liegen in der App, es werden keine Schriften aus dem Netz geladen.

@@ -5,6 +5,7 @@ const LANGS = { de: 'Deutsch', en: 'English' };
 const I18N = {
   de: {
     'lang': 'Sprache',
+    'tagline': 'Stiftplotter-Studio',
     'drop.title': 'SVG hierher ziehen',
     'drop.sub': 'oder klicken zum Auswählen',
     'example': 'Beispiel laden …',
@@ -97,7 +98,7 @@ const I18N = {
     'download': 'G-Code herunterladen',
     'empty': 'Lade ein SVG, dann erscheint hier die Vorschau auf dem Druckbett.',
     'progress': 'Plot-Fortschritt',
-    'footer.html': 'μplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low',
+    'footer.html': 'µplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low',
 
     'calculating': 'Berechne …',
     'stat.draw': 'Zeichnen',
@@ -120,6 +121,7 @@ const I18N = {
 
   en: {
     'lang': 'Language',
+    'tagline': 'pen plotter studio',
     'drop.title': 'Drop an SVG here',
     'drop.sub': 'or click to choose a file',
     'example': 'Load example …',
@@ -212,7 +214,7 @@ const I18N = {
     'download': 'Download G-code',
     'empty': 'Load an SVG to see a preview on the print bed.',
     'progress': 'Plot progress',
-    'footer.html': 'μplot by Daniel Myrenne · based on <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> by Brian Low',
+    'footer.html': 'µplot by Daniel Myrenne · based on <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> by Brian Low',
 
     'calculating': 'Calculating …',
     'stat.draw': 'Drawing',

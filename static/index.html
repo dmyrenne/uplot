@@ -5,87 +5,117 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>μplot</title>
 <style>
+  /* Schriften liegen lokal in static/fonts (SIL Open Font License) */
+  @font-face { font-family: 'Space Grotesk'; src: url(static/fonts/space-grotesk.woff2) format('woff2');
+               font-weight: 300 700; font-display: swap; }
+  @font-face { font-family: 'JetBrains Mono'; src: url(static/fonts/jetbrains-mono.woff2) format('woff2');
+               font-weight: 100 800; font-display: swap; }
   :root {
-    --bg: #f4f3ef; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #dddbd4;
-    --accent: #2f6f5e; --accent-ink: #fff; --warn: #a2451d; --warn-bg: #fbeee6;
-    --bed: #e9e7e0; --area: #ffffff; --stroke: #1d1d1b; --travel: #d0643b; --head: #1f5fd1; --hatch: #cfccc3; --safety: #e98bb1;
+    --sans: 'Space Grotesk', system-ui, sans-serif; --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --bg: #f3f4f6; --panel: #ffffff; --field: #ffffff; --ink: #0c0d10; --muted: #71737c; --line: #e3e4e8; --line-strong: #c9cbd2;
+    --accent: #2340ff; --accent-soft: #e8ebff; --accent-ink: #ffffff; --warn: #d4380d; --warn-bg: #fff1eb;
+    --bed: #e6e8ec; --area: #ffffff; --stroke: #0c0d10; --travel: #ff5a36; --head: #2340ff; --hatch: #d3d6dd; --safety: #ff9a80;
+    --dot: #d9dbe1;
   }
   @media (prefers-color-scheme: dark) {
     :root {
-      --bg: #1a1a19; --panel: #232322; --ink: #ecebe6; --muted: #9c9a94; --line: #3a3a37;
-      --accent: #6fc2a8; --accent-ink: #10231d; --warn: #f0a07c; --warn-bg: #3a2519;
-      --bed: #2c2c2a; --area: #e4e2db; --stroke: #f4f3ef; --travel: #e07a52; --head: #6aa2ff; --hatch: #45453f; --safety: #b45d83;
+      --bg: #0b0c0f; --panel: #121318; --field: #0b0c0f; --ink: #eceef3; --muted: #8b8e99; --line: #23252d; --line-strong: #353843;
+      --accent: #7187ff; --accent-soft: #1b2146; --accent-ink: #0b0c0f; --warn: #ff8a66; --warn-bg: #2d1710;
+      --bed: #1a1c22; --area: #eceae4; --stroke: #0c0d10; --travel: #ff6b47; --head: #7187ff; --hatch: #2a2d36; --safety: #ff8a66;
+      --dot: #1e2027;
     }
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
-  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink);
-         display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
-  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
-          scrollbar-gutter: stable; }   /* Platz für die Scrollbar reservieren, damit nichts springt */
-  main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
-  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 12px; }
-  .head select { width: auto; padding: 3px 6px; font-size: 12px; }
-  h1 { font-size: 17px; margin: 0; }
-  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
-       margin: 18px 0 8px; font-weight: 600; }
-  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 12px; text-align: center;
-          cursor: pointer; color: var(--muted); }
-  .drop.over { border-color: var(--accent); color: var(--accent); }
-  .drop strong { color: var(--ink); display: block; word-break: break-all; }
-  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
-  label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
-  label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 13px; grid-column: 1 / -1; }
-  input:disabled { opacity: .45; }
-  input[type=number], input[type=text], select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
-         border-radius: 6px; padding: 5px 7px; width: 100%; }
-  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
-           border-radius: 6px; padding: 7px 12px; cursor: pointer; }
-  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
-  button:disabled { opacity: .5; cursor: default; }
-  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-  .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
-  details summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
-                    color: var(--muted); font-weight: 600; margin: 18px 0 8px; }
-  .toolbar { display: flex; gap: 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line);
-             background: var(--panel); flex-wrap: wrap; }
-  .stats { display: flex; gap: 18px; flex-wrap: wrap; }
-  .stat b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
-  .stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
-  .stage { position: relative; min-height: 0; }
-  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
-  .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
-  .bottom { padding: 10px 16px; border-top: 1px solid var(--line); background: var(--panel); display: grid; gap: 8px; }
-  input[type=range] { width: 100%; accent-color: var(--accent); }
-  .msg { padding: 8px 10px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); white-space: pre-wrap;
-         font-size: 13px; }
-  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
-  .legend svg { vertical-align: -3px; margin-right: 5px; }
-  .seg { grid-column: 1 / -1; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
-  .seg label { flex: 1; flex-direction: row; gap: 0; }
-  .seg input { position: absolute; opacity: 0; pointer-events: none; }
-  .seg span { flex: 1; text-align: center; padding: 6px 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
-  .seg input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
-  .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
-  .derived { grid-column: 1 / -1; font-size: 12px; background: var(--bg); border-radius: 6px; padding: 7px 9px; }
-  .derived b { font-variant-numeric: tabular-nums; }
+  body { margin: 0; font: 14px/1.45 var(--sans); background: var(--bg); color: var(--ink);
+         display: grid; grid-template-columns: 372px 1fr; height: 100vh; -webkit-font-smoothing: antialiased; }
+  ::selection { background: var(--accent); color: var(--accent-ink); }
+  a { color: inherit; text-decoration-color: var(--accent); text-underline-offset: 2px; }
+  a:hover { color: var(--accent); }
+
+  /* ---------- Seitenleiste ---------- */
+  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 18px 20px 28px;
+          scrollbar-gutter: stable; counter-reset: sec; }   /* Platz für die Scrollbar reservieren, damit nichts springt */
+  .head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 18px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand svg { width: 36px; height: 36px; border-radius: 9px; background: var(--ink); cursor: pointer; flex: none; }
+  h1 { font-size: 22px; line-height: 1; margin: 0; font-weight: 700; letter-spacing: -.03em; }
+  h1 small { display: block; white-space: nowrap; font: 500 10px/1.3 var(--mono); letter-spacing: .02em; color: var(--muted); margin-top: 4px; }
+  .head select { width: auto; padding: 4px 8px; font-size: 12px; }
+  h2, details summary { display: flex; align-items: baseline; gap: 10px; font-size: 15px; font-weight: 600; letter-spacing: -.01em;
+       margin: 26px 0 12px; padding-top: 14px; border-top: 1px solid var(--line); color: var(--ink); }
+  h2::before, details summary::before { counter-increment: sec; content: counter(sec, decimal-leading-zero);
+       font: 500 11px var(--mono); color: var(--accent); }
+  details summary { cursor: pointer; list-style: none; }
+  details summary::-webkit-details-marker { display: none; }
+  details summary::after { content: '+'; margin-left: auto; font: 400 16px var(--mono); color: var(--muted); }
+  details[open] summary::after { content: '−'; }
+
+  .drop { border: 1px dashed var(--line-strong); border-radius: 10px; padding: 20px 14px;
+          text-align: center; cursor: pointer; color: var(--muted); transition: border-color .15s, background .15s; }
+  .drop:hover, .drop.over { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+  .drop strong { color: var(--ink); display: block; word-break: break-all; font-weight: 600; font-size: 15px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; align-items: end; }
+  label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  label.check { flex-direction: row; align-items: center; gap: 9px; color: var(--ink); font-size: 13px; grid-column: 1 / -1; cursor: pointer; }
+  input:disabled { opacity: .4; }
+  input[type=number], input[type=text], select {
+         font: 500 13px var(--mono); color: var(--ink); background: var(--field); border: 1px solid var(--line-strong);
+         border-radius: 6px; padding: 6px 8px; width: 100%; transition: border-color .15s, box-shadow .15s; }
+  input[type=text], select { font-family: var(--sans); font-size: 14px; font-weight: 400; }
+  input:focus-visible, select:focus-visible, button:focus-visible {
+         outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  input[type=checkbox] { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); }
+  input[type=color] { width: 100%; height: 32px; padding: 3px; border: 1px solid var(--line-strong); border-radius: 6px;
+                      background: var(--field); cursor: pointer; }
+  input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+  input[type=color]::-webkit-color-swatch { border: none; border-radius: 3px; }
+  button { font: 500 13px var(--sans); border: 1px solid var(--line-strong); background: var(--panel); color: var(--ink);
+           border-radius: 99px; padding: 6px 14px; cursor: pointer; transition: border-color .15s, background .15s, color .15s; }
+  button:hover:not(:disabled) { border-color: var(--ink); }
+  button.primary { background: var(--ink); color: var(--panel); border-color: var(--ink); font-weight: 600; }
+  button.primary:hover:not(:disabled) { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+  button:disabled { opacity: .35; cursor: default; }
+  .row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .hint { font-size: 12px; color: var(--muted); margin: 8px 0 0; }
+  .derived { grid-column: 1 / -1; font-size: 12px; background: var(--accent-soft); color: var(--ink); border-radius: 6px; padding: 8px 10px; }
+  .derived b { font: 600 12px var(--mono); color: var(--accent); }
   .derived.bad { background: var(--warn-bg); color: var(--warn); }
+  .derived.bad b { color: inherit; }
   .lt { display: flex; align-items: center; gap: 5px; }
   .info { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; flex: none;
-          border: 1px solid var(--muted); color: var(--muted); font: italic 600 10px/1 Georgia, serif; cursor: help; }
+          border: 1px solid var(--line-strong); color: var(--muted); font: 600 9px/1 var(--mono); cursor: help; }
   .info:hover, .info:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
-  #tip { position: fixed; z-index: 10; max-width: 260px; padding: 8px 10px; border-radius: 6px; font-size: 12px;
-         line-height: 1.45; background: var(--ink); color: var(--bg); pointer-events: none; display: none;
-         box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
+  #tip { position: fixed; z-index: 10; max-width: 260px; padding: 9px 11px; border-radius: 8px; font-size: 12px;
+         line-height: 1.5; background: var(--ink); color: var(--panel); pointer-events: none; display: none;
+         box-shadow: 0 8px 24px rgb(0 0 0 / .18); }
   .preset-row { display: flex; gap: 8px; align-items: center; }
   .preset-row select { flex: 1; }
-  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
+  .badge { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 99px;
+           background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
   .saveas input { flex: 1; min-width: 0; }
-  input[type=color] { width: 100%; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px;
-                      background: var(--bg); cursor: pointer; }
-  .foot { font-size: 12px; color: var(--muted); }
-  .foot a { color: inherit; }
+  .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; }
+
+  /* ---------- Arbeitsfläche ---------- */
+  main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+  .toolbar { display: flex; gap: 16px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--line);
+             background: var(--panel); flex-wrap: wrap; }
+  .stats { display: flex; gap: 28px; flex-wrap: wrap; }
+  .stat b { display: block; font: 600 18px/1.2 var(--mono); letter-spacing: -.02em; }
+  .stat span { font-size: 11px; color: var(--muted); }
   .spacer { flex: 1; }
+  .stage { position: relative; min-height: 0;
+           background: radial-gradient(circle, var(--dot) 1px, transparent 1.2px) 0 0 / 16px 16px, var(--bg); }
+  canvas#canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+  .bottom { padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel); display: grid; gap: 10px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .msg { padding: 8px 11px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); white-space: pre-wrap; font-size: 13px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
+  .legend svg { vertical-align: -3px; margin-right: 6px; }
+  .progress { display: flex; gap: 12px; align-items: center; font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .foot { font-size: 12px; color: var(--muted); }
   @media (max-width: 800px) {
     body { grid-template-columns: 1fr; height: auto; }
     main { height: 80vh; }
@@ -95,7 +125,10 @@
 <body>
 <aside>
   <div class="head">
-    <h1>μplot</h1>
+    <div class="brand">
+      <svg id="mark" viewBox="0 0 34 34" role="img" aria-label="μplot"></svg>
+      <h1>µplot<small data-i18n="tagline"></small></h1>
+    </div>
     <select id="lang" data-i18n-aria="lang"></select>
   </div>
 
@@ -190,7 +223,7 @@
   <div class="bottom">
     <div id="messages"></div>
     <div class="legend" id="legend"></div>
-    <div class="row"><span style="font-size:12px;color:var(--muted);white-space:nowrap" data-i18n="progress"></span>
+    <div class="progress"><span data-i18n="progress"></span>
       <input type="range" id="progress" min="0" max="1000" value="1000"></div>
     <footer class="foot" data-i18n-html="footer.html"></footer>
   </div>
@@ -585,7 +618,7 @@ function draw() {
   for (let y = 0; y <= BED.h; y += 50) { ctx.moveTo(sx(0), sy(y)); ctx.lineTo(sx(BED.w), sy(y)); }
   ctx.moveTo(sx(BED.w), sy(0)); ctx.lineTo(sx(BED.w), sy(BED.h)); ctx.lineTo(sx(0), sy(BED.h));
   ctx.stroke();
-  ctx.fillStyle = css('--muted'); ctx.font = '11px system-ui, sans-serif';
+  ctx.fillStyle = css('--muted'); ctx.font = "11px 'JetBrains Mono', monospace";
   ctx.textAlign = 'center'; ctx.textBaseline = 'top';
   ctx.fillText('0', sx(0) - 8, sy(0) + 6);
   for (let x = 50; x <= BED.w; x += 50) ctx.fillText(x, sx(x), sy(0) + 6);
@@ -606,6 +639,9 @@ function draw() {
   }
   if (area.w > 0 && area.h > 0) {
     ctx.fillStyle = css('--area');
+    ctx.shadowColor = 'rgb(0 0 0 / .10)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 3;
+    ctx.fillRect(sx(0), sy(Math.min(area.h, BED.h)), Math.min(area.w, BED.w) * view.k, Math.min(area.h, BED.h) * view.k);
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = ctx.shadowOffsetY = 0;
     ctx.fillRect(sx(0), sy(Math.min(area.h, BED.h)), Math.min(area.w, BED.w) * view.k, Math.min(area.h, BED.h) * view.k);
   }
 
@@ -639,7 +675,7 @@ function draw() {
     ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
     ctx.strokeRect(x0, y1, x1 - x0, y0 - y1); ctx.setLineDash([]);
     ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(x0, y0, 3.5, 0, 7); ctx.fill();
-    ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.font = "600 11px 'JetBrains Mono', monospace"; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
     ctx.fillText(`${round1(box.x0 + sh.x)} | ${round1(box.y0 + sh.y)}`, x0 + 6, y0 + 4);
   }
 
@@ -654,7 +690,7 @@ function draw() {
   ctx.moveTo(px - 12, py); ctx.lineTo(px + 12, py); ctx.moveTo(px, py - 12); ctx.lineTo(px, py + 12);
   ctx.stroke();
   ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
-  ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  ctx.font = "600 11px 'JetBrains Mono', monospace"; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
   const fmt = (v) => Math.round(v * 10) / 10;
   ctx.fillText(t('canvas.nozzle', { x: fmt(ox), y: fmt(oy) }), nx + 10, ny - 6);
   ctx.textBaseline = 'bottom';
@@ -723,6 +759,34 @@ $('legend').innerHTML = `
   <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg><span data-i18n="legend.unreachable"></span></span>
   <span id="bedLegend"></span>`;
 
+// ---------- Generatives Logo ----------
+// Ein kleines Strömungsfeld: Linien folgen einem Winkelfeld aus überlagerten Sinuswellen, wie ein Plotter sie zeichnen würde.
+function flowLines(w, h, { lines, steps, step = 2, freq, seed = Math.random() * 2 ** 32 }) {
+  let st = seed >>> 0;
+  const rnd = () => (st = (st * 1664525 + 1013904223) >>> 0) / 2 ** 32;
+  const a = rnd() * 6.3, b = rnd() * 6.3, c = rnd() * 6.3, turn = 1 + rnd() * 1.5;
+  const angle = (x, y) => turn * (Math.sin(x * freq + a) + Math.cos(y * freq * 1.3 + b)) + Math.sin((x + y) * freq * .5 + c);
+  const out = [], cols = Math.ceil(Math.sqrt(lines * w / h)), rows = Math.ceil(lines / cols);
+  for (let i = 0; i < lines; i++) {
+    let x = (i % cols + rnd()) * w / cols, y = (Math.floor(i / cols) + rnd()) * h / rows;
+    const pts = [[x, y]];
+    for (let j = 0; j < steps; j++) {
+      const t = angle(x, y); x += Math.cos(t) * step; y += Math.sin(t) * step;
+      if (x < 0 || y < 0 || x > w || y > h) break;
+      pts.push([x, y]);
+    }
+    if (pts.length > 4) out.push('M' + pts.map(([px, py]) => px.toFixed(1) + ' ' + py.toFixed(1)).join('L'));
+  }
+  return out;
+}
+const pathEls = (ds, attrs) => ds.map((d, i) => `<path d="${d}" ${typeof attrs === 'function' ? attrs(i) : attrs}/>`).join('');
+function drawMark() {   // Logo: bei jedem Laden (und Klick) ein neues Muster, eine Linie im Akzent
+  const ds = flowLines(34, 34, { lines: 16, steps: 40, step: 1.1, freq: .13 });
+  $('mark').innerHTML = pathEls(ds, (i) => `fill="none" stroke-linecap="round" stroke-width="${i ? .7 : 1.6}" stroke="${i ? 'var(--panel)' : 'var(--accent)'}" opacity="${i ? .8 : 1}"`);
+}
+$('mark').onclick = drawMark;
+drawMark();
+
 // ---------- Download ----------
 $('download').onclick = () => {
   if (!result) return;
@@ -759,6 +823,7 @@ applyI18n();
   await Promise.all([printerPresets.reload(stored('plotter-preset')), penPresets.reload(stored('uplot-pen'))]);
   for (const name of data.examples) $('example').add(new Option(name, name));
   draw();
+  document.fonts.ready.then(draw);   // Achsbeschriftung mit der geladenen Schrift neu zeichnen
 })();
 </script>
 </body>
