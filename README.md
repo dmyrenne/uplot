@@ -7,20 +7,27 @@ Der G-Code entsteht mit [vpype](https://github.com/abey79/vpype) und [vpype-gcod
 
 ## Installation mit Docker (empfohlen)
 
-Voraussetzung: Docker mit Compose-Plugin (`docker compose`). Podman mit `podman compose` geht ebenso.
+Voraussetzung: Docker (Podman geht ebenso). Das fertige Image liegt in der GitHub Container Registry
+(derzeit nur für `linux/amd64`):
+
+    docker run -d --name uplot -p 127.0.0.1:5055:5055 -v uplot-data:/data --restart unless-stopped \
+      ghcr.io/dmyrenne/uplot:latest
+
+Oder mit Compose aus diesem Repo:
 
     git clone https://github.com/dmyrenne/uplot.git
     cd uplot
-    docker compose up -d --build
+    docker compose up -d            # lädt ghcr.io/dmyrenne/uplot:latest
+    docker compose up -d --build    # alternativ selbst aus dem Quellcode bauen (z. B. auf ARM)
 
-Danach läuft μplot unter http://127.0.0.1:5055. Beim Bauen lädt das Image die Beispiel-SVGs aus
-brianlow/plotter herunter; sie stehen dann unter „Beispiel laden …“ zur Auswahl.
+Danach läuft μplot unter http://127.0.0.1:5055. Das Image enthält die Beispiel-SVGs aus brianlow/plotter;
+sie stehen unter „Beispiel laden …“ zur Auswahl.
 
 | Aufgabe | Befehl |
 | --- | --- |
 | Stoppen | `docker compose down` |
 | Logs ansehen | `docker compose logs -f` |
-| Aktualisieren | `git pull && docker compose up -d --build` |
+| Aktualisieren | `docker compose pull && docker compose up -d` (oder `git pull && docker compose up -d --build`) |
 | Profile sichern | `docker compose cp uplot:/data/presets.json .` |
 | Profile einspielen | `docker compose cp presets.json uplot:/data/presets.json` |
 

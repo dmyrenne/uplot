@@ -1,7 +1,7 @@
 services:
   uplot:
-    build: .
-    image: uplot
+    image: ghcr.io/dmyrenne/uplot:latest
+    build: .                    # nur für "docker compose up --build" aus dem Quellcode
     ports:
       - "127.0.0.1:5055:5055"   # nur vom eigenen Rechner erreichbar
     volumes:

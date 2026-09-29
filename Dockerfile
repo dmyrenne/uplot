@@ -1,5 +1,10 @@
 FROM python:3.12-slim
 
+LABEL org.opencontainers.image.title="μplot" \
+      org.opencontainers.image.description="Weboberfläche zum Stiftplotten mit dem Prusa MK3S+ (vpype + vpype-gcode)" \
+      org.opencontainers.image.source="https://github.com/dmyrenne/uplot" \
+      org.opencontainers.image.authors="Daniel Myrenne"
+
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UPLOT_DATA=/data
 WORKDIR /app
 
