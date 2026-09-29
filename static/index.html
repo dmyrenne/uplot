@@ -1,0 +1,713 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>μplot</title>
+<style>
+  :root {
+    --bg: #f4f3ef; --panel: #ffffff; --ink: #1d1d1b; --muted: #6b6a66; --line: #dddbd4;
+    --accent: #2f6f5e; --accent-ink: #fff; --warn: #a2451d; --warn-bg: #fbeee6;
+    --bed: #e9e7e0; --area: #ffffff; --stroke: #1d1d1b; --travel: #d0643b; --head: #1f5fd1; --hatch: #cfccc3; --safety: #e98bb1;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1a1a19; --panel: #232322; --ink: #ecebe6; --muted: #9c9a94; --line: #3a3a37;
+      --accent: #6fc2a8; --accent-ink: #10231d; --warn: #f0a07c; --warn-bg: #3a2519;
+      --bed: #2c2c2a; --area: #3a3a37; --stroke: #f4f3ef; --travel: #e07a52; --head: #6aa2ff; --hatch: #45453f; --safety: #b45d83;
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; font: 14px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--ink);
+         display: grid; grid-template-columns: 380px 1fr; height: 100vh; }
+  aside { background: var(--panel); border-right: 1px solid var(--line); overflow-y: auto; padding: 16px;
+          scrollbar-gutter: stable; }   /* Platz für die Scrollbar reservieren, damit nichts springt */
+  main { display: grid; grid-template-rows: auto 1fr auto; min-width: 0; }
+  h1 { font-size: 17px; margin: 0 0 12px; }
+  h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted);
+       margin: 18px 0 8px; font-weight: 600; }
+  .drop { border: 2px dashed var(--line); border-radius: 8px; padding: 18px 12px; text-align: center;
+          cursor: pointer; color: var(--muted); }
+  .drop.over { border-color: var(--accent); color: var(--accent); }
+  .drop strong { color: var(--ink); display: block; word-break: break-all; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+  label { display: flex; flex-direction: column; gap: 3px; font-size: 12px; color: var(--muted); }
+  label.check { flex-direction: row; align-items: center; gap: 8px; color: var(--ink); font-size: 13px; grid-column: 1 / -1; }
+  input:disabled { opacity: .45; }
+  input[type=number], input[type=text], select { font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line);
+         border-radius: 6px; padding: 5px 7px; width: 100%; }
+  button { font: inherit; border: 1px solid var(--line); background: var(--panel); color: var(--ink);
+           border-radius: 6px; padding: 7px 12px; cursor: pointer; }
+  button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  button:disabled { opacity: .5; cursor: default; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .hint { font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+  details summary { cursor: pointer; font-size: 12px; text-transform: uppercase; letter-spacing: .06em;
+                    color: var(--muted); font-weight: 600; margin: 18px 0 8px; }
+  .toolbar { display: flex; gap: 16px; align-items: center; padding: 10px 16px; border-bottom: 1px solid var(--line);
+             background: var(--panel); flex-wrap: wrap; }
+  .stats { display: flex; gap: 18px; flex-wrap: wrap; }
+  .stat b { display: block; font-size: 16px; font-variant-numeric: tabular-nums; }
+  .stat span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; }
+  .stage { position: relative; min-height: 0; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; cursor: grab; }
+  .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
+  .bottom { padding: 10px 16px; border-top: 1px solid var(--line); background: var(--panel); display: grid; gap: 8px; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .msg { padding: 8px 10px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); white-space: pre-wrap;
+         font-size: 13px; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
+  .legend svg { vertical-align: -3px; margin-right: 5px; }
+  .seg { grid-column: 1 / -1; display: flex; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; }
+  .seg label { flex: 1; flex-direction: row; gap: 0; }
+  .seg input { position: absolute; opacity: 0; pointer-events: none; }
+  .seg span { flex: 1; text-align: center; padding: 6px 4px; font-size: 12px; color: var(--muted); cursor: pointer; }
+  .seg input:checked + span { background: var(--accent); color: var(--accent-ink); font-weight: 600; }
+  .seg input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: -2px; }
+  .derived { grid-column: 1 / -1; font-size: 12px; background: var(--bg); border-radius: 6px; padding: 7px 9px; }
+  .derived b { font-variant-numeric: tabular-nums; }
+  .derived.bad { background: var(--warn-bg); color: var(--warn); }
+  .lt { display: flex; align-items: center; gap: 5px; }
+  .info { display: inline-grid; place-items: center; width: 15px; height: 15px; border-radius: 50%; flex: none;
+          border: 1px solid var(--muted); color: var(--muted); font: italic 600 10px/1 Georgia, serif; cursor: help; }
+  .info:hover, .info:focus-visible { border-color: var(--accent); color: var(--accent); outline: none; }
+  #tip { position: fixed; z-index: 10; max-width: 260px; padding: 8px 10px; border-radius: 6px; font-size: 12px;
+         line-height: 1.45; background: var(--ink); color: var(--bg); pointer-events: none; display: none;
+         box-shadow: 0 4px 14px rgb(0 0 0 / .18); }
+  .preset-row { display: flex; gap: 8px; align-items: center; }
+  .preset-row select { flex: 1; }
+  .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
+  #saveAsRow input { flex: 1; min-width: 0; }
+  .foot { font-size: 12px; color: var(--muted); }
+  .foot a { color: inherit; }
+  .spacer { flex: 1; }
+  @media (max-width: 800px) {
+    body { grid-template-columns: 1fr; height: auto; }
+    main { height: 80vh; }
+  }
+</style>
+</head>
+<body>
+<aside>
+  <h1>μplot</h1>
+
+  <div class="drop" id="drop">
+    <strong id="fileName">SVG hierher ziehen</strong>
+    oder klicken zum Auswählen
+    <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
+  </div>
+  <div class="row" style="margin-top:8px">
+    <select id="example"><option value="">Beispiel laden …</option></select>
+  </div>
+
+  <form id="form">
+    <h2>Layout</h2>
+    <div class="grid">
+      <label class="check"><input type="checkbox" name="fit"> An Plotfläche anpassen<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Skaliert die Grafik proportional">i</span></label>
+      <label>Rand (mm)<input type="number" name="margin" step="0.5" min="0"></label>
+      <label class="check"><input type="checkbox" name="center"> Zentrieren</label>
+      <label><span class="lt">Position X (mm)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Untere linke Ecke der Grafik, gemessen vom Nullpunkt 0|0 des Betts. Du kannst die Grafik auch in der Vorschau mit der Maus verschieben; das schaltet „Zentrieren“ aus.">i</span></span><input type="number" name="pos_x" step="0.5"></label>
+      <label><span class="lt">Position Y (mm)</span><input type="number" name="pos_y" step="0.5"></label>
+      <label>Drehen (°, im Uhrzeigersinn)<input type="number" name="angle" step="1" min="0" max="360"></label>
+      <span></span>
+      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_x"> X spiegeln</label>
+      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_y"> Y spiegeln</label>
+    </div>
+
+    <h2>Optimierung</h2>
+    <div class="grid">
+      <label class="check"><input type="checkbox" name="merge_layers"> Alle Ebenen zusammenführen</label>
+      <label class="check"><input type="checkbox" name="linesort"> Linien sortieren (weniger Leerfahrten)</label>
+      <label>Linemerge-Toleranz (mm)<input type="number" name="linemerge_tol" step="0.05" min="0"></label>
+      <label>Vereinfachen (mm, 0 = aus)<input type="number" name="simplify_tol" step="0.05" min="0"></label>
+      <label>Min. Linienlänge (mm)<input type="number" name="min_length" step="0.1" min="0"></label>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" id="draft">Entwurf-Preset</button>
+      <button type="button" id="normal">Normal-Preset</button>
+    </div>
+
+    <h2>Drucker-Profil</h2>
+    <div class="preset-row">
+      <select id="preset" aria-label="Drucker-Profil"></select>
+      <span class="badge" id="presetBadge" hidden>geändert</span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" id="presetSave">Speichern</button>
+      <button type="button" id="presetSaveAs">Speichern unter …</button>
+      <button type="button" id="presetRevert">Verwerfen</button>
+      <button type="button" id="presetDelete">Löschen</button>
+    </div>
+    <div class="row" id="saveAsRow" style="margin-top:8px" hidden>
+      <input type="text" id="presetName" maxlength="60" placeholder="Name, z. B. MK3S+ Gelstift" aria-label="Profilname">
+      <button type="button" class="primary" id="saveAsOk">OK</button>
+      <button type="button" id="saveAsCancel">Abbrechen</button>
+    </div>
+    <p class="hint" id="presetMsg">Ein Profil speichert Kalibrierung und Geschwindigkeiten.</p>
+
+    <details>
+      <summary>Kalibrierung</summary>
+      <div class="grid">
+        <label><span class="lt">Druckbett Breite (mm)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Größe des Druckbetts, beim MK3S+ 250 × 210 mm. Der Nullpunkt 0|0 ist die untere linke Ecke.">i</span></span><input type="number" name="bed_w" step="1" min="1"></label>
+        <label><span class="lt">Druckbett Höhe (mm)</span><input type="number" name="bed_h" step="1" min="1"></label>
+        <label><span class="lt">Düse im Nullpunkt X<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Druckerkoordinate der Düse, wenn der Stift genau auf der unteren linken Ecke des Betts (0|0) steht. Ermitteln: am Drucker über Settings → Move Axis den Stift auf die Ecke fahren und X/Y ablesen.">i</span></span><input type="number" name="offset_x" step="0.1"></label>
+        <label><span class="lt">Düse im Nullpunkt Y</span><input type="number" name="offset_y" step="0.1"></label>
+        <label><span class="lt">Sicherheitsabstand<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Abstand in mm. Wird rechts und hinten vom erreichbaren Bereich abgezogen, damit die Achsen nicht bis an den Anschlag fahren. In der Vorschau pink schraffiert.">i</span></span><input type="number" name="safety" step="0.5" min="0"></label>
+        <div class="derived" id="derived"></div>
+        <label><span class="lt">Z Stift unten<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe beim Zeichnen. Stift so weit absenken, dass er das Papier berührt, dann noch etwa 1 mm tiefer für leichten Andruck.">i</span></span><input type="number" name="z_down" step="0.1"></label>
+        <label><span class="lt">Z Stift oben<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe für Leerfahrten zwischen zwei Linien. Ein paar Millimeter über dem Papier reichen; je niedriger, desto schneller.">i</span></span><input type="number" name="z_up" step="0.1"></label>
+        <label><span class="lt">Z sichere Höhe<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Z-Höhe am Anfang (nach dem Referenzieren) und am Ende des Plots, damit der Stift über Klammern oder Magnete hinwegfährt. Zwischen den Linien wird nur auf „Z Stift oben“ angehoben.">i</span></span><input type="number" name="z_travel" step="0.1"></label>
+        <span></span>
+        <label><span class="lt">Parkposition X<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Druckerkoordinate, zu der die Düse am Ende fährt, damit du das Papier gut entnehmen kannst.">i</span></span><input type="number" name="park_x" step="1"></label>
+        <label><span class="lt">Parkposition Y</span><input type="number" name="park_y" step="1"></label>
+      </div>
+      <p class="hint">Mehr zum Kalibrieren: <code>docs/calibrating.md</code> im Originalrepo. Einstellungen werden im Browser gespeichert.</p>
+    </details>
+
+    <details>
+      <summary>Geschwindigkeiten</summary>
+      <div class="grid">
+        <label><span class="lt">Zeichnen (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit, solange der Stift auf dem Papier ist. Langsamer gibt sauberere Linien; über USB kann es bei hohen Werten ruckeln.">i</span></span><input type="number" name="feed_draw" step="100"></label>
+        <label><span class="lt">Leerfahrt (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit der Fahrten mit angehobenem Stift.">i</span></span><input type="number" name="feed_travel" step="100"></label>
+        <label><span class="lt">Z-Achse (mm/min)<span class="info" tabindex="0" role="button" aria-label="Info" data-tip="Geschwindigkeit, mit der der Stift angehoben und abgesenkt wird.">i</span></span><input type="number" name="feed_z" step="10"></label>
+      </div>
+    </details>
+  </form>
+</aside>
+
+<main>
+  <div class="toolbar">
+    <div class="stats" id="stats"></div>
+    <div class="spacer"></div>
+    <label class="check" style="grid-column:auto"><input type="checkbox" id="showTravel" checked> Leerfahrten</label>
+    <button id="fitView">Ansicht zurücksetzen</button>
+    <button class="primary" id="download" disabled>G-Code herunterladen</button>
+  </div>
+  <div class="stage" id="stage">
+    <canvas id="canvas"></canvas>
+    <div class="empty" id="empty">Lade ein SVG, dann erscheint hier die Vorschau auf dem Druckbett.</div>
+  </div>
+  <div class="bottom">
+    <div id="messages"></div>
+    <div class="legend" id="legend"></div>
+    <div class="row"><span style="font-size:12px;color:var(--muted);white-space:nowrap">Plot-Fortschritt</span>
+      <input type="range" id="progress" min="0" max="1000" value="1000"></div>
+    <footer class="foot">μplot by Daniel Myrenne · basiert auf <a href="https://github.com/brianlow/plotter" target="_blank" rel="noopener">brianlow/plotter</a> von Brian Low</footer>
+  </div>
+</main>
+
+<div id="tip" role="tooltip"></div>
+<script>
+const BED = { w: 250, h: 210 };          // Druckbett, Nullpunkt unten links; wird aus dem Formular aktualisiert
+const $ = (id) => document.getElementById(id);
+const form = $('form');
+let DEFAULTS = {}, svgFile = null, result = null, moves = [], view = null;
+
+// ---------- Einstellungen ----------
+function readForm() {
+  const s = {};
+  for (const el of form.elements) {
+    if (!el.name) continue;
+    if (el.type === 'radio') { if (el.checked) s[el.name] = el.value; continue; }
+    s[el.name] = el.type === 'checkbox' ? el.checked : el.value;
+  }
+  return s;
+}
+function writeForm(s) {
+  for (const el of form.elements) {
+    if (!el.name || !(el.name in s)) continue;
+    if (el.type === 'radio') el.checked = el.value === s[el.name];
+    else if (el.type === 'checkbox') el.checked = !!s[el.name]; else el.value = s[el.name];
+  }
+}
+function save() { try { localStorage.setItem('plotter-settings', JSON.stringify(readForm())); } catch {} }
+function load() { try { return JSON.parse(localStorage.getItem('plotter-settings') || '{}'); } catch { return {}; } }
+
+// ---------- Datei ----------
+function setFile(file) {
+  svgFile = file;
+  $('fileName').textContent = file.name;
+  convert();
+}
+$('drop').onclick = () => $('file').click();
+$('file').onchange = (e) => e.target.files[0] && setFile(e.target.files[0]);
+$('drop').ondragover = (e) => { e.preventDefault(); $('drop').classList.add('over'); };
+$('drop').ondragleave = () => $('drop').classList.remove('over');
+$('drop').ondrop = (e) => {
+  e.preventDefault(); $('drop').classList.remove('over');
+  const f = e.dataTransfer.files[0]; if (f) setFile(f);
+};
+$('example').onchange = async (e) => {
+  const name = e.target.value; if (!name) return;
+  const blob = await (await fetch('/api/example/' + encodeURIComponent(name))).blob();
+  setFile(new File([blob], name, { type: 'image/svg+xml' }));
+  e.target.value = '';
+};
+
+// ---------- Plotbare Fläche ----------
+// Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts, der Versatz Stift→Düse ist also
+// genau der Nullpunkt. Gleiche Formel wie plot_area() in app.py.
+function plotArea(s) {
+  const reachW = +s.bed_w - +s.offset_x, reachH = +s.bed_h - +s.offset_y;   // vom Stift erreichbar
+  return { reachW, reachH, w: reachW - +s.safety, h: reachH - +s.safety };
+}
+function showDerived() {
+  const s = readForm(), a = plotArea(s), f1 = (v) => (Math.round(v * 10) / 10).toLocaleString('de-DE');
+  const w = +s.bed_w || 250, h = +s.bed_h || 210;
+  if (w !== BED.w || h !== BED.h) { BED.w = w; BED.h = h; view && fitView(); }
+  const bad = a.w <= 0 || a.h <= 0;
+  $('derived').className = 'derived' + (bad ? ' bad' : '');
+  $('derived').innerHTML = `Plotbare Fläche: <b>${f1(a.w)} × ${f1(a.h)} mm</b>` +
+    (bad ? '<br>Die Fläche ist leer. Nullpunkt und Sicherheitsabstand prüfen.' : '');
+  $('bedLegend').textContent = `Bett ${f1(BED.w)} × ${f1(BED.h)} mm, Nullpunkt unten links`;
+}
+form.addEventListener('input', () => { showDerived(); draw(); });
+
+// Info-Tooltips (Hover, Tastatur und Antippen)
+function showTip(el) {
+  const tip = $('tip'), r = el.getBoundingClientRect();
+  tip.textContent = el.dataset.tip; tip.style.display = 'block';
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+  tip.style.top = (r.bottom + 6 + h > innerHeight ? r.top - h - 6 : r.bottom + 6) + 'px';
+}
+const hideTip = () => { $('tip').style.display = 'none'; };
+for (const el of document.querySelectorAll('.info')) {
+  el.addEventListener('mouseenter', () => showTip(el));
+  el.addEventListener('mouseleave', hideTip);
+  el.addEventListener('focus', () => showTip(el));
+  el.addEventListener('blur', hideTip);
+  el.addEventListener('click', (e) => { e.preventDefault(); el.focus(); showTip(el); });   // nicht das Eingabefeld fokussieren
+}
+
+// Rand ist nur beim Einpassen relevant, die Position nur ohne Zentrieren
+const syncMargin = () => {
+  form.elements.margin.disabled = !form.elements.fit.checked;
+  form.elements.pos_x.disabled = form.elements.pos_y.disabled = form.elements.center.checked;
+};
+form.addEventListener('change', syncMargin);
+
+// ---------- Konvertieren ----------
+let timer = null, seq = 0;
+form.addEventListener('input', (e) => {
+  if (!e.target.name) return;   // z. B. Profilauswahl/-name: keine Einstellung
+  save(); clearTimeout(timer); timer = setTimeout(convert, 400);
+});
+// ---------- Drucker-Profile ----------
+let PRESETS = [], MACHINE_KEYS = [];
+const presetByName = (n) => PRESETS.find((p) => p.name === n);
+const currentPreset = () => presetByName($('preset').value);
+const machineValues = () => { const s = readForm(); return Object.fromEntries(MACHINE_KEYS.map((k) => [k, +s[k]])); };
+function isModified() {
+  const p = currentPreset(), v = machineValues();
+  return !!p && MACHINE_KEYS.some((k) => Math.abs(v[k] - p.settings[k]) > 1e-9);
+}
+function presetMsg(text, bad) { $('presetMsg').textContent = text; $('presetMsg').style.color = bad ? 'var(--warn)' : ''; }
+function updatePresetUI() {
+  const p = currentPreset(), mod = isModified();
+  $('presetBadge').hidden = !mod;
+  $('presetSave').disabled = !p || !mod;
+  $('presetRevert').disabled = !mod;
+  $('presetDelete').textContent = p?.builtin ? 'Zurücksetzen' : 'Löschen';
+  $('presetDelete').disabled = !p || (p.builtin && !p.customized);
+  $('presetDelete').title = p?.builtin ? 'Standardprofil auf die Werkseinstellung zurücksetzen' : '';
+}
+async function loadPresets(select) {
+  const data = await (await fetch('/api/presets')).json();
+  PRESETS = data.presets;
+  MACHINE_KEYS = Object.keys(presetByName(data.builtin).settings);
+  $('preset').innerHTML = '';
+  for (const p of PRESETS) $('preset').add(new Option(p.builtin ? `${p.name} (Standard)` : p.name, p.name));
+  $('preset').value = presetByName(select) ? select : data.builtin;
+  try { localStorage.setItem('plotter-preset', $('preset').value); } catch {}
+  updatePresetUI();
+}
+function applyPreset(name) {
+  writeForm(presetByName(name).settings);
+  showDerived(); fitView(); save(); updatePresetUI(); convert();
+}
+let lastPreset = null;
+$('preset').onfocus = () => { lastPreset = $('preset').value; };
+$('preset').onchange = () => {
+  if (lastPreset && lastPreset !== $('preset').value) {
+    const prev = presetByName(lastPreset), cur = $('preset').value;
+    $('preset').value = lastPreset;                      // zum Vergleichen kurz zurück
+    const mod = isModified();
+    $('preset').value = cur;
+    if (mod && !confirm(`Ungespeicherte Änderungen an „${prev.name}“ verwerfen?`)) { $('preset').value = lastPreset; return; }
+  }
+  lastPreset = $('preset').value;
+  try { localStorage.setItem('plotter-preset', lastPreset); } catch {}
+  applyPreset(lastPreset);
+  presetMsg(`Profil „${lastPreset}“ geladen.`);
+};
+async function putPreset(name) {
+  const res = await fetch('/api/presets/' + encodeURIComponent(name), {
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(machineValues()),
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || res.statusText);
+}
+$('presetSave').onclick = async () => {
+  const name = $('preset').value;
+  try { await putPreset(name); await loadPresets(name); presetMsg(`„${name}“ gespeichert.`); }
+  catch (e) { presetMsg(e.message, true); }
+};
+$('presetSaveAs').onclick = () => {
+  $('saveAsRow').hidden = false;
+  const p = currentPreset();
+  $('presetName').value = p && !p.builtin ? p.name : '';
+  $('presetName').focus(); $('presetName').select();
+};
+const closeSaveAs = () => { $('saveAsRow').hidden = true; };
+$('saveAsCancel').onclick = closeSaveAs;
+$('saveAsOk').onclick = async () => {
+  const name = $('presetName').value.trim();
+  if (!name) { presetMsg('Bitte einen Namen eingeben.', true); return; }
+  const existing = presetByName(name);
+  if (existing && !confirm(`Profil „${name}“ gibt es schon. Überschreiben?`)) return;
+  try { await putPreset(name); await loadPresets(name); lastPreset = name; closeSaveAs(); presetMsg(`„${name}“ gespeichert.`); }
+  catch (e) { presetMsg(e.message, true); }
+};
+$('presetName').onkeydown = (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); $('saveAsOk').click(); }
+  if (e.key === 'Escape') closeSaveAs();
+};
+$('presetRevert').onclick = () => { applyPreset($('preset').value); presetMsg('Änderungen verworfen.'); };
+$('presetDelete').onclick = async () => {
+  const name = $('preset').value, builtin = currentPreset()?.builtin;
+  if (!confirm(builtin ? `„${name}“ auf die Werkseinstellung zurücksetzen?` : `Profil „${name}“ löschen?`)) return;
+  const res = await fetch('/api/presets/' + encodeURIComponent(name), { method: 'DELETE' });
+  if (!res.ok) { presetMsg((await res.json()).error, true); return; }
+  if (builtin) {
+    await loadPresets(name); applyPreset(name);
+    presetMsg(`„${name}“ auf die Werkseinstellung zurückgesetzt.`); return;
+  }
+  await loadPresets(null); lastPreset = $('preset').value;
+  presetMsg(`„${name}“ gelöscht. Die Werte sind noch eingestellt und lassen sich mit „Speichern unter …“ neu sichern.`);
+};
+form.addEventListener('input', updatePresetUI);
+$('draft').onclick = () => { writeForm({ simplify_tol: 0.5, linemerge_tol: 0.5, linesort: true }); save(); convert(); };
+$('normal').onclick = () => { writeForm({ simplify_tol: 0, linemerge_tol: DEFAULTS.linemerge_tol, linesort: true }); save(); convert(); };
+
+async function convert() {
+  if (!svgFile) return;
+  const my = ++seq;
+  const fd = new FormData();
+  fd.append('svg', svgFile);
+  for (const [k, v] of Object.entries(readForm())) fd.append(k, typeof v === 'boolean' ? (v ? '1' : '0') : v);
+  $('download').disabled = true;
+  showMessages(['Berechne …'], true);
+  let data;
+  try {
+    const res = await fetch('/api/convert', { method: 'POST', body: fd });
+    data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+  } catch (err) {
+    if (my !== seq) return;
+    result = null; moves = []; box = null; draw(); renderStats();
+    showMessages([String(err.message || err)]);
+    return;
+  }
+  if (my !== seq) return;
+  result = data;
+  moves = parseGcode(data.gcode);
+  box = drawBox(data.settings);
+  if (box && data.settings.center) {   // zentrierte Lage übernehmen, damit Ausschalten sie beibehält
+    writeForm({ pos_x: round1(box.x0), pos_y: round1(box.y0) }); save();
+  }
+  $('download').disabled = false;
+  $('empty').style.display = 'none';
+  renderStats();
+  showMessages(checkBounds(data.settings));
+  draw();
+}
+
+// ---------- G-Code lesen ----------
+function parseGcode(text) {
+  let x = null, y = null, z = 30, f = 1000;
+  const out = [];   // {x0,y0,x1,y1,draw,t}
+  for (const raw of text.split('\n')) {
+    const line = raw.split(';')[0].trim();
+    if (!/^G0?[01]\b/i.test(line)) continue;
+    let nx = x, ny = y, nz = z;
+    for (const m of line.matchAll(/([XYZF])(-?[\d.]+)/gi)) {
+      const v = parseFloat(m[2]);
+      switch (m[1].toUpperCase()) { case 'X': nx = v; break; case 'Y': ny = v; break; case 'Z': nz = v; break; case 'F': f = v; }
+    }
+    if (x === null || y === null) { x = nx; y = ny; z = nz; continue; }
+    const d = Math.hypot(nx - x, ny - y, nz - z);
+    if (nx !== x || ny !== y) out.push({ x0: x, y0: y, x1: nx, y1: ny, draw: z <= penDownZ() + 1e-6, t: d / f * 60, len: Math.hypot(nx - x, ny - y) });
+    else if (d) out.push({ t: d / f * 60 });   // reine Z-Bewegung: nur Zeit
+    x = nx; y = ny; z = nz;
+  }
+  return out;
+}
+const penDownZ = () => parseFloat(form.elements.z_down.value);
+const round1 = (v) => Math.round(v * 10) / 10;
+
+// Umriss der gezeichneten Linien in Stiftkoordinaten (Bett)
+let box = null;
+function drawBox(s) {
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const m of moves) if (m.draw) {
+    x0 = Math.min(x0, m.x0, m.x1); x1 = Math.max(x1, m.x0, m.x1);
+    y0 = Math.min(y0, m.y0, m.y1); y1 = Math.max(y1, m.y0, m.y1);
+  }
+  if (x0 === Infinity) return null;
+  return { x0: x0 - s.offset_x, y0: y0 - s.offset_y, x1: x1 - s.offset_x, y1: y1 - s.offset_y };
+}
+// Verschiebung der Vorschau gegenüber dem letzten G-Code, solange eine neue Position noch berechnet wird
+function shift() {
+  const s = readForm();
+  if (!box || s.center) return { x: 0, y: 0 };
+  return { x: (+s.pos_x || 0) - box.x0, y: (+s.pos_y || 0) - box.y0 };
+}
+
+function renderStats() {
+  if (!moves.length) { $('stats').innerHTML = ''; return; }
+  let drawLen = 0, travelLen = 0, t = 0, lifts = 0, prevDraw = false;
+  for (const m of moves) {
+    t += m.t;
+    if (m.len === undefined) continue;
+    if (m.draw) { drawLen += m.len; if (!prevDraw) lifts++; } else travelLen += m.len;
+    prevDraw = m.draw;
+  }
+  const fmtLen = (mm) => mm >= 1000 ? (mm / 1000).toFixed(2) + ' m' : mm.toFixed(0) + ' mm';
+  const min = Math.round(t / 60);
+  const items = [
+    ['Zeichnen', fmtLen(drawLen)], ['Leerfahrt', fmtLen(travelLen)], ['Linienzüge', lifts],
+    ['Dauer ca.', min >= 60 ? `${Math.floor(min / 60)} h ${min % 60} min` : `${min} min`],
+  ];
+  $('stats').innerHTML = items.map(([k, v]) => `<div class="stat"><b>${v}</b><span>${k}</span></div>`).join('');
+}
+
+function checkBounds(s) {
+  const minX = +s.offset_x, minY = +s.offset_y, maxX = minX + +s.area_w, maxY = minY + +s.area_h;
+  let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
+  for (const m of moves) if (m.draw) {
+    bx0 = Math.min(bx0, m.x0, m.x1); bx1 = Math.max(bx1, m.x0, m.x1);
+    by0 = Math.min(by0, m.y0, m.y1); by1 = Math.max(by1, m.y0, m.y1);
+  }
+  if (bx0 === Infinity) return ['Das SVG enthält keine zeichenbaren Linien.'];
+  const eps = 0.01, out = [];
+  const px0 = bx0 - s.offset_x, px1 = bx1 - s.offset_x, py0 = by0 - s.offset_y, py1 = by1 - s.offset_y;
+  if (px0 < -eps || py0 < -eps || px1 > BED.w + eps || py1 > BED.h + eps)
+    out.push(`Achtung: Der Stift würde außerhalb des Druckbetts zeichnen ` +
+      `(X ${px0.toFixed(1)}–${px1.toFixed(1)}, Y ${py0.toFixed(1)}–${py1.toFixed(1)} mm auf dem Bett, Bett ${BED.w}×${BED.h} mm). ` +
+      `Nullpunkt prüfen.`);
+  if (bx0 < minX - eps || by0 < minY - eps || bx1 > maxX + eps || by1 > maxY + eps)
+    out.push(`Achtung: Die Zeichnung ragt über die plotbare Fläche hinaus ` +
+      `(X ${bx0.toFixed(1)}–${bx1.toFixed(1)}, Y ${by0.toFixed(1)}–${by1.toFixed(1)} mm; erlaubt X ${minX}–${maxX}, Y ${minY}–${maxY}). ` +
+      `Tipp: Grafik verschieben, „An Plotfläche anpassen“ oder „Zentrieren“ aktivieren.`);
+  return out;
+}
+
+function showMessages(list, neutral) {
+  $('messages').innerHTML = list.map((m) =>
+    `<div class="msg"${neutral ? ' style="background:transparent;color:var(--muted);padding:0"' : ''}></div>`).join('');
+  [...$('messages').children].forEach((el, i) => el.textContent = list[i]);
+}
+
+// ---------- Vorschau ----------
+const canvas = $('canvas'), ctx = canvas.getContext('2d');
+const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+
+function fitView() {
+  const r = canvas.getBoundingClientRect(), padL = 44, padB = 34, pad = 20;
+  const k = Math.min((r.width - padL - pad) / BED.w, (r.height - padB - pad) / BED.h);
+  view = { k, ox: padL + (r.width - padL - pad - BED.w * k) / 2, oy: pad + (r.height - padB - pad - BED.h * k) / 2 };
+}
+// Bettkoordinaten (Nullpunkt unten links, y nach oben) -> Bildschirm
+const sx = (x) => view.ox + x * view.k;
+const sy = (y) => view.oy + (BED.h - y) * view.k;
+
+function draw() {
+  const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  canvas.width = r.width * dpr; canvas.height = r.height * dpr;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  if (!view) fitView();
+  ctx.clearRect(0, 0, r.width, r.height);
+
+  const s = readForm();
+  const ox = +s.offset_x, oy = +s.offset_y;
+  const sh = shift();
+  const dx = -ox + sh.x, dy = -oy + sh.y;   // G-Code (Düse) -> Stift auf dem Bett, plus laufende Verschiebung
+
+  // Druckbett
+  ctx.fillStyle = css('--bed');
+  ctx.fillRect(sx(0), sy(BED.h), BED.w * view.k, BED.h * view.k);
+  // Schraffur für den nicht plotbaren Teil (die plotbare Fläche wird weiter unten darübergelegt)
+  ctx.save();
+  ctx.beginPath(); ctx.rect(sx(0), sy(BED.h), BED.w * view.k, BED.h * view.k); ctx.clip();
+  ctx.strokeStyle = css('--hatch'); ctx.lineWidth = 1; ctx.beginPath();
+  const bw = BED.w * view.k, bh = BED.h * view.k;
+  for (let t = -bh; t < bw; t += 8) { ctx.moveTo(sx(0) + t, sy(0)); ctx.lineTo(sx(0) + t + bh, sy(BED.h)); }
+  ctx.stroke(); ctx.restore();
+  // 5-cm-Raster wie auf dem Smooth Sheet + Achsbeschriftung
+  ctx.strokeStyle = css('--line'); ctx.lineWidth = 1; ctx.beginPath();
+  for (let x = 0; x <= BED.w; x += 50) { ctx.moveTo(sx(x), sy(0)); ctx.lineTo(sx(x), sy(BED.h)); }
+  for (let y = 0; y <= BED.h; y += 50) { ctx.moveTo(sx(0), sy(y)); ctx.lineTo(sx(BED.w), sy(y)); }
+  ctx.moveTo(sx(BED.w), sy(0)); ctx.lineTo(sx(BED.w), sy(BED.h)); ctx.lineTo(sx(0), sy(BED.h));
+  ctx.stroke();
+  ctx.fillStyle = css('--muted'); ctx.font = '11px system-ui, sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
+  ctx.fillText('0', sx(0) - 8, sy(0) + 6);
+  for (let x = 50; x <= BED.w; x += 50) ctx.fillText(x, sx(x), sy(0) + 6);
+  ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+  for (let y = 50; y <= BED.h; y += 50) ctx.fillText(y, sx(0) - 6, sy(y));   // die 0 steht schon an der X-Achse
+
+  // erreichbarer Bereich: Sicherheitsabstand pink schraffiert, darüber die plotbare Fläche in Weiß
+  const area = plotArea(s);
+  const rw = Math.max(0, Math.min(area.reachW, BED.w)), rh = Math.max(0, Math.min(area.reachH, BED.h));
+  if (rw > 0 && rh > 0) {
+    ctx.fillStyle = css('--area');
+    ctx.fillRect(sx(0), sy(rh), rw * view.k, rh * view.k);
+    ctx.save();
+    ctx.beginPath(); ctx.rect(sx(0), sy(rh), rw * view.k, rh * view.k); ctx.clip();
+    ctx.strokeStyle = css('--safety'); ctx.lineWidth = 1; ctx.beginPath();
+    for (let t = -rh * view.k; t < rw * view.k; t += 6) { ctx.moveTo(sx(0) + t, sy(0)); ctx.lineTo(sx(0) + t + rh * view.k, sy(rh)); }
+    ctx.stroke(); ctx.restore();
+  }
+  if (area.w > 0 && area.h > 0) {
+    ctx.fillStyle = css('--area');
+    ctx.fillRect(sx(0), sy(Math.min(area.h, BED.h)), Math.min(area.w, BED.w) * view.k, Math.min(area.h, BED.h) * view.k);
+  }
+
+  const n = Math.round(moves.length * $('progress').value / 1000);
+  const stroke = (isDraw, color, width, dash) => {
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath();
+    for (let i = 0; i < n; i++) {
+      const m = moves[i];
+      if (m.len === undefined || m.draw !== isDraw) continue;
+      ctx.moveTo(sx(m.x0 + dx), sy(m.y0 + dy)); ctx.lineTo(sx(m.x1 + dx), sy(m.y1 + dy));
+    }
+    ctx.stroke(); ctx.setLineDash([]);
+  };
+  if ($('showTravel').checked) stroke(false, css('--travel'), 0.6, [3, 3]);
+  stroke(true, css('--stroke'), Math.max(0.6, 0.4 * view.k), []);
+
+  // Stiftposition beim Scrubben
+  if (n > 0 && n < moves.length) {
+    let i = n - 1; while (i > 0 && moves[i].len === undefined) i--;
+    const m = moves[i];
+    if (m.x1 !== undefined) {
+      ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(sx(m.x1 + dx), sy(m.y1 + dy), 4, 0, 7); ctx.fill();
+    }
+  }
+
+  // Umriss der Grafik beim Überfahren/Ziehen, mit Position der unteren linken Ecke
+  if (box && (hover || grab)) {
+    const x0 = sx(box.x0 + sh.x), y0 = sy(box.y0 + sh.y), x1 = sx(box.x1 + sh.x), y1 = sy(box.y1 + sh.y);
+    ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
+    ctx.strokeRect(x0, y1, x1 - x0, y0 - y1); ctx.setLineDash([]);
+    ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(x0, y0, 3.5, 0, 7); ctx.fill();
+    ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+    ctx.fillText(`${round1(box.x0 + sh.x)} | ${round1(box.y0 + sh.y)}`, x0 + 6, y0 + 4);
+  }
+
+  // Nullpunkt: Düse (Kreis) und Stift (Fadenkreuz), verbunden durch den Versatz
+  const head = css('--head');
+  const nx = sx(ox), ny = sy(oy), px = sx(0), py = sy(0);
+  ctx.strokeStyle = head; ctx.fillStyle = head; ctx.lineWidth = 1.5;
+  ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
+  ctx.beginPath(); ctx.arc(nx, ny, 7, 0, 7); ctx.stroke();
+  ctx.beginPath(); ctx.arc(nx, ny, 2, 0, 7); ctx.fill();
+  ctx.beginPath();
+  ctx.moveTo(px - 12, py); ctx.lineTo(px + 12, py); ctx.moveTo(px, py - 12); ctx.lineTo(px, py + 12);
+  ctx.stroke();
+  ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
+  ctx.font = '600 11px system-ui, sans-serif'; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
+  const fmt = (v) => Math.round(v * 10) / 10;
+  ctx.fillText(`Düse ${fmt(ox)} | ${fmt(oy)}`, nx + 10, ny - 6);
+  ctx.textBaseline = 'bottom';
+  ctx.fillText('Stift 0 | 0', px + 14, py - 4);
+}
+
+// Zoom & Pan
+canvas.addEventListener('wheel', (e) => {
+  e.preventDefault();
+  const r = canvas.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+  const f = Math.exp(-e.deltaY * 0.0015);
+  view.ox = mx - (mx - view.ox) * f; view.oy = my - (my - view.oy) * f; view.k *= f;
+  draw();
+}, { passive: false });
+// Ziehen auf der Grafik verschiebt sie (setzt Position X/Y), sonst wird die Ansicht verschoben
+let drag = null, grab = null, hover = false;
+function overGraphic(e) {
+  if (!box || !view) return false;
+  const r = canvas.getBoundingClientRect(), sh = shift(), tol = 6;
+  const mx = e.clientX - r.left, my = e.clientY - r.top;
+  return mx >= sx(box.x0 + sh.x) - tol && mx <= sx(box.x1 + sh.x) + tol &&
+         my >= sy(box.y1 + sh.y) - tol && my <= sy(box.y0 + sh.y) + tol;
+}
+canvas.onpointerdown = (e) => {
+  canvas.setPointerCapture(e.pointerId);
+  if (overGraphic(e)) {
+    const sh = shift();
+    grab = { x: e.clientX, y: e.clientY, px: box.x0 + sh.x, py: box.y0 + sh.y };
+    canvas.style.cursor = 'move';
+    if (form.elements.center.checked) {   // Ziehen beendet das Zentrieren
+      form.elements.center.checked = false;
+      writeForm({ pos_x: round1(grab.px), pos_y: round1(grab.py) }); syncMargin();
+    }
+  } else {
+    drag = { x: e.clientX, y: e.clientY }; canvas.style.cursor = 'grabbing';
+  }
+};
+canvas.onpointermove = (e) => {
+  if (grab) {
+    writeForm({ pos_x: round1(grab.px + (e.clientX - grab.x) / view.k),
+                pos_y: round1(grab.py - (e.clientY - grab.y) / view.k) });
+    draw(); return;
+  }
+  if (drag) {
+    view.ox += e.clientX - drag.x; view.oy += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; draw(); return;
+  }
+  const h = overGraphic(e);
+  if (h !== hover) { hover = h; canvas.style.cursor = h ? 'move' : ''; draw(); }
+};
+canvas.onpointerup = () => {
+  if (grab) { grab = null; save(); clearTimeout(timer); convert(); }
+  drag = null; canvas.style.cursor = hover ? 'move' : '';
+};
+canvas.onpointerleave = () => { if (hover && !grab) { hover = false; draw(); } };
+$('fitView').onclick = () => { fitView(); draw(); };
+$('progress').oninput = draw;
+$('showTravel').onchange = draw;
+new ResizeObserver(() => { fitView(); draw(); }).observe($('stage'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
+
+$('legend').innerHTML = `
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="var(--head)"/></svg>Düse im Nullpunkt (Druckerkoordinate)</span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 8H16M8 0V16" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--head)" stroke-width="1.5"/></svg>Stift auf dem Bett</span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 8H15" stroke="var(--travel)" stroke-dasharray="3 3"/></svg>Leerfahrt</span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--area)" stroke="var(--line)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--safety)"/></svg>Sicherheitsabstand</span>
+  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg>für den Stift nicht erreichbar</span>
+  <span id="bedLegend"></span>`;
+
+// ---------- Download ----------
+$('download').onclick = () => {
+  if (!result) return;
+  const name = (svgFile?.name || 'plot.svg').replace(/\.svg$/i, '') + '.gcode';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([result.gcode], { type: 'text/plain' }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+
+// ---------- Start ----------
+(async () => {
+  const data = await (await fetch('/api/defaults')).json();
+  DEFAULTS = data.defaults;
+  writeForm({ ...DEFAULTS, ...load() });
+  syncMargin(); showDerived(); fitView();
+  let stored = null; try { stored = localStorage.getItem('plotter-preset'); } catch {}
+  await loadPresets(stored);
+  for (const name of data.examples) $('example').add(new Option(name, name));
+  draw();
+})();
+</script>
+</body>
+</html>

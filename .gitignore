@@ -1,0 +1,7 @@
+.venv/
+__pycache__/
+*.tmp
+# eigene Drucker-Profile
+presets.json
+# Beispiel-SVGs aus brianlow/plotter (ohne Lizenz, daher nicht im Repo) -> ./fetch-examples.sh
+examples/
