@@ -14,7 +14,7 @@
     :root {
       --bg: #1a1a19; --panel: #232322; --ink: #ecebe6; --muted: #9c9a94; --line: #3a3a37;
       --accent: #6fc2a8; --accent-ink: #10231d; --warn: #f0a07c; --warn-bg: #3a2519;
-      --bed: #2c2c2a; --area: #3a3a37; --stroke: #f4f3ef; --travel: #e07a52; --head: #6aa2ff; --hatch: #45453f; --safety: #b45d83;
+      --bed: #2c2c2a; --area: #e4e2db; --stroke: #f4f3ef; --travel: #e07a52; --head: #6aa2ff; --hatch: #45453f; --safety: #b45d83;
     }
   }
   * { box-sizing: border-box; }
@@ -80,7 +80,9 @@
   .preset-row { display: flex; gap: 8px; align-items: center; }
   .preset-row select { flex: 1; }
   .badge { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 99px; background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
-  #saveAsRow input { flex: 1; min-width: 0; }
+  .saveas input { flex: 1; min-width: 0; }
+  input[type=color] { width: 100%; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px;
+                      background: var(--bg); cursor: pointer; }
   .foot { font-size: 12px; color: var(--muted); }
   .foot a { color: inherit; }
   .spacer { flex: 1; }
@@ -122,7 +124,6 @@
 
     <h2 data-i18n="h.optim"></h2>
     <div class="grid">
-      <label class="check"><input type="checkbox" name="merge_layers"> <span data-i18n="merge_layers"></span></label>
       <label class="check"><input type="checkbox" name="linesort"> <span data-i18n="linesort"></span></label>
       <label><span class="lt"><span data-i18n="linemerge_tol"></span></span><input type="number" name="linemerge_tol" step="0.05" min="0"></label>
       <label><span class="lt"><span data-i18n="simplify_tol"></span></span><input type="number" name="simplify_tol" step="0.05" min="0"></label>
@@ -133,23 +134,16 @@
       <button type="button" id="normal" data-i18n="normal"></button>
     </div>
 
+    <h2 data-i18n="h.pen"></h2>
+    <div class="presets" id="penPresets">
+      <div class="grid" data-role="fields" style="margin-top:8px">
+      <label><span class="lt"><span data-i18n="pen_color"></span></span><input type="color" name="pen_color"></label>
+      <label><span class="lt"><span data-i18n="pen_width"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.pen_width">i</span></span><input type="number" name="pen_width" step="0.05" min="0.05" max="20"></label>
+      </div>
+    </div>
+
     <h2 data-i18n="h.profile"></h2>
-    <div class="preset-row">
-      <select id="preset" data-i18n-aria="h.profile"></select>
-      <span class="badge" id="presetBadge" data-i18n="modified" hidden></span>
-    </div>
-    <div class="row" style="margin-top:8px">
-      <button type="button" id="presetSave" data-i18n="save"></button>
-      <button type="button" id="presetSaveAs" data-i18n="saveAs"></button>
-      <button type="button" id="presetRevert" data-i18n="revert"></button>
-      <button type="button" id="presetDelete"></button>
-    </div>
-    <div class="row" id="saveAsRow" style="margin-top:8px" hidden>
-      <input type="text" id="presetName" maxlength="60" data-i18n-placeholder="presetName" data-i18n-aria="presetNameLabel">
-      <button type="button" class="primary" id="saveAsOk" data-i18n="ok"></button>
-      <button type="button" id="saveAsCancel" data-i18n="cancel"></button>
-    </div>
-    <p class="hint" id="presetMsg" data-i18n="preset.hint"></p>
+    <div class="presets" id="printerPresets"></div>
 
     <details>
       <summary data-i18n="h.calib"></summary>
@@ -298,104 +292,140 @@ form.addEventListener('change', syncMargin);
 
 // ---------- Konvertieren ----------
 let timer = null, seq = 0;
+const PEN_KEYS = ['pen_color', 'pen_width'];
 form.addEventListener('input', (e) => {
   if (!e.target.name) return;   // z. B. Profilauswahl/-name: keine Einstellung
-  save(); clearTimeout(timer); timer = setTimeout(convert, 400);
+  save();
+  if (PEN_KEYS.includes(e.target.name)) return;   // Stift wirkt nur auf die Vorschau
+  clearTimeout(timer); timer = setTimeout(convert, 400);
 });
-// ---------- Drucker-Profile ----------
-let PRESETS = [], MACHINE_KEYS = [];
-const presetByName = (n) => PRESETS.find((p) => p.name === n);
-const currentPreset = () => presetByName($('preset').value);
-const machineValues = () => { const s = readForm(); return Object.fromEntries(MACHINE_KEYS.map((k) => [k, +s[k]])); };
-function isModified() {
-  const p = currentPreset(), v = machineValues();
-  return !!p && MACHINE_KEYS.some((k) => Math.abs(v[k] - p.settings[k]) > 1e-9);
-}
-function presetMsg(text, bad) { $('presetMsg').textContent = text; $('presetMsg').style.color = bad ? 'var(--warn)' : ''; }
-function updatePresetUI() {
-  const p = currentPreset(), mod = isModified();
-  $('presetBadge').hidden = !mod;
-  $('presetSave').disabled = !p || !mod;
-  $('presetRevert').disabled = !mod;
-  $('presetDelete').textContent = t(p?.builtin ? 'reset' : 'delete');
-  $('presetDelete').disabled = !p || (p.builtin && !p.customized);
-  $('presetDelete').title = p?.builtin ? t('resetTitle') : '';
-}
-async function loadPresets(select) {
-  const data = await (await api('/api/presets')).json();
-  PRESETS = data.presets;
-  MACHINE_KEYS = Object.keys(presetByName(data.builtin).settings);
-  $('preset').innerHTML = '';
-  for (const p of PRESETS) $('preset').add(new Option(p.builtin ? t('builtin', { name: p.name }) : p.name, p.name));
-  $('preset').value = presetByName(select) ? select : data.builtin;
-  try { localStorage.setItem('plotter-preset', $('preset').value); } catch {}
-  updatePresetUI();
-}
-function applyPreset(name) {
-  writeForm(presetByName(name).settings);
-  showDerived(); fitView(); save(); updatePresetUI(); convert();
-}
-let lastPreset = null;
-$('preset').onfocus = () => { lastPreset = $('preset').value; };
-$('preset').onchange = () => {
-  if (lastPreset && lastPreset !== $('preset').value) {
-    const prev = presetByName(lastPreset), cur = $('preset').value;
-    $('preset').value = lastPreset;                      // zum Vergleichen kurz zurück
-    const mod = isModified();
-    $('preset').value = cur;
-    if (mod && !confirm(t('confirm.discard', { name: prev.name }))) { $('preset').value = lastPreset; return; }
+// ---------- Profile (Drucker und Stift) ----------
+// Beide Profilarten funktionieren gleich: Auswahl, Speichern, Speichern unter, Verwerfen, Löschen.
+// Das Standardprofil lässt sich überschreiben und zurücksetzen.
+function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
+  const fields = root.querySelector('[data-role=fields]');   // optionale Eingabefelder direkt unter der Auswahl
+  root.innerHTML = `
+    <div class="preset-row">
+      <select data-role="select"></select>
+      <span class="badge" data-role="badge" data-i18n="modified" hidden></span>
+    </div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" data-role="save" data-i18n="save"></button>
+      <button type="button" data-role="saveAs" data-i18n="saveAs"></button>
+      <button type="button" data-role="revert" data-i18n="revert"></button>
+      <button type="button" data-role="delete"></button>
+    </div>
+    <div class="row saveas" data-role="saveAsRow" style="margin-top:8px" hidden>
+      <input type="text" data-role="name" maxlength="60" data-i18n-placeholder="${placeholder}" data-i18n-aria="presetNameLabel">
+      <button type="button" class="primary" data-role="ok" data-i18n="ok"></button>
+      <button type="button" data-role="cancel" data-i18n="cancel"></button>
+    </div>
+    <p class="hint" data-role="msg" data-i18n="${hint}"></p>`;
+  const el = (r) => root.querySelector(`[data-role=${r}]`), sel = el('select');
+  if (fields) sel.parentElement.after(fields);
+  sel.setAttribute('data-i18n-aria', root.previousElementSibling.dataset.i18n);
+  let list = [], keys = [], builtin = null, last = null;
+  const byName = (n) => list.find((p) => p.name === n);
+  const current = () => byName(sel.value);
+  // Zahlen als Zahl vergleichen, Texte (Farbe) als Kleinbuchstaben
+  const values = () => {
+    const f = readForm();
+    return Object.fromEntries(keys.map((k) => [k, typeof byName(builtin).settings[k] === 'number' ? +f[k] : String(f[k]).toLowerCase()]));
+  };
+  const modified = () => {
+    const p = current(), v = values();
+    return !!p && keys.some((k) => typeof v[k] === 'number' ? Math.abs(v[k] - p.settings[k]) > 1e-9 : v[k] !== p.settings[k]);
+  };
+  const say = (text, bad) => { el('msg').textContent = text; el('msg').style.color = bad ? 'var(--warn)' : ''; };
+  const label = (p) => p.builtin ? t('builtin', { name: p.name }) : p.name;
+  function update() {
+    const p = current(), mod = modified();
+    el('badge').hidden = !mod;
+    el('save').disabled = !p || !mod;
+    el('revert').disabled = !mod;
+    el('delete').textContent = t(p?.builtin ? 'reset' : 'delete');
+    el('delete').disabled = !p || (p.builtin && !p.customized);
+    el('delete').title = p?.builtin ? t('resetTitle') : '';
   }
-  lastPreset = $('preset').value;
-  try { localStorage.setItem('plotter-preset', lastPreset); } catch {}
-  applyPreset(lastPreset);
-  presetMsg(t('msg.loaded', { name: lastPreset }));
-};
-async function putPreset(name) {
-  const res = await api('/api/presets/' + encodeURIComponent(name), {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(machineValues()),
-  });
-  const data = await res.json();
-  if (!res.ok) throw new Error(data.error || res.statusText);
-}
-$('presetSave').onclick = async () => {
-  const name = $('preset').value;
-  try { await putPreset(name); await loadPresets(name); presetMsg(t('msg.saved', { name })); }
-  catch (e) { presetMsg(e.message, true); }
-};
-$('presetSaveAs').onclick = () => {
-  $('saveAsRow').hidden = false;
-  const p = currentPreset();
-  $('presetName').value = p && !p.builtin ? p.name : '';
-  $('presetName').focus(); $('presetName').select();
-};
-const closeSaveAs = () => { $('saveAsRow').hidden = true; };
-$('saveAsCancel').onclick = closeSaveAs;
-$('saveAsOk').onclick = async () => {
-  const name = $('presetName').value.trim();
-  if (!name) { presetMsg(t('msg.needName'), true); return; }
-  const existing = presetByName(name);
-  if (existing && !confirm(t('confirm.overwrite', { name }))) return;
-  try { await putPreset(name); await loadPresets(name); lastPreset = name; closeSaveAs(); presetMsg(t('msg.saved', { name })); }
-  catch (e) { presetMsg(e.message, true); }
-};
-$('presetName').onkeydown = (e) => {
-  if (e.key === 'Enter') { e.preventDefault(); $('saveAsOk').click(); }
-  if (e.key === 'Escape') closeSaveAs();
-};
-$('presetRevert').onclick = () => { applyPreset($('preset').value); presetMsg(t('msg.discarded')); };
-$('presetDelete').onclick = async () => {
-  const name = $('preset').value, builtin = currentPreset()?.builtin;
-  if (!confirm(t(builtin ? 'confirm.reset' : 'confirm.delete', { name }))) return;
-  const res = await api('/api/presets/' + encodeURIComponent(name), { method: 'DELETE' });
-  if (!res.ok) { presetMsg((await res.json()).error, true); return; }
-  if (builtin) {
-    await loadPresets(name); applyPreset(name);
-    presetMsg(t('msg.reset', { name })); return;
+  async function reload(select) {
+    const data = await (await api(url)).json();
+    list = data.presets; builtin = data.builtin;
+    keys = Object.keys(byName(builtin).settings);
+    sel.innerHTML = '';
+    for (const p of list) sel.add(new Option(label(p), p.name));
+    sel.value = byName(select) ? select : builtin;
+    last = sel.value;
+    try { localStorage.setItem(storeKey, sel.value); } catch {}
+    update();
   }
-  await loadPresets(null); lastPreset = $('preset').value;
-  presetMsg(t('msg.deleted', { name }));
-};
-form.addEventListener('input', updatePresetUI);
+  function apply(name) { writeForm(byName(name).settings); save(); update(); onApply(); }
+  sel.onchange = () => {
+    if (last && last !== sel.value) {
+      const cur = sel.value;
+      sel.value = last;                      // zum Vergleichen kurz zurück
+      const mod = modified();
+      sel.value = cur;
+      if (mod && !confirm(t('confirm.discard', { name: last }))) { sel.value = last; return; }
+    }
+    last = sel.value;
+    try { localStorage.setItem(storeKey, last); } catch {}
+    apply(last);
+    say(t('msg.loaded', { name: last }));
+  };
+  async function put(name) {
+    const res = await api(url + '/' + encodeURIComponent(name), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values()),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+  }
+  el('save').onclick = async () => {
+    const name = sel.value;
+    try { await put(name); await reload(name); say(t('msg.saved', { name })); }
+    catch (e) { say(e.message, true); }
+  };
+  el('saveAs').onclick = () => {
+    el('saveAsRow').hidden = false;
+    const p = current();
+    el('name').value = p && !p.builtin ? p.name : '';
+    el('name').focus(); el('name').select();
+  };
+  const closeSaveAs = () => { el('saveAsRow').hidden = true; };
+  el('cancel').onclick = closeSaveAs;
+  el('ok').onclick = async () => {
+    const name = el('name').value.trim();
+    if (!name) { say(t('msg.needName'), true); return; }
+    if (byName(name) && !confirm(t('confirm.overwrite', { name }))) return;
+    try { await put(name); await reload(name); closeSaveAs(); say(t('msg.saved', { name })); }
+    catch (e) { say(e.message, true); }
+  };
+  el('name').onkeydown = (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); el('ok').click(); }
+    if (e.key === 'Escape') closeSaveAs();
+  };
+  el('revert').onclick = () => { apply(sel.value); say(t('msg.discarded')); };
+  el('delete').onclick = async () => {
+    const name = sel.value, isBuiltin = current()?.builtin;
+    if (!confirm(t(isBuiltin ? 'confirm.reset' : 'confirm.delete', { name }))) return;
+    const res = await api(url + '/' + encodeURIComponent(name), { method: 'DELETE' });
+    if (!res.ok) { say((await res.json()).error, true); return; }
+    if (isBuiltin) { await reload(name); apply(name); say(t('msg.reset', { name })); return; }
+    await reload(null);
+    say(t('msg.deleted', { name }));
+  };
+  form.addEventListener('input', update);
+  // Profilnamen (Standard-Zusatz) nach einem Sprachwechsel neu beschriften
+  const relabel = () => { for (const o of sel.options) o.text = label(byName(o.value)); update(); };
+  return { reload, relabel };
+}
+const printerPresets = presetManager({
+  root: $('printerPresets'), url: '/api/presets', storeKey: 'plotter-preset', hint: 'preset.hint', placeholder: 'presetName',
+  onApply: () => { showDerived(); fitView(); convert(); },
+});
+const penPresets = presetManager({
+  root: $('penPresets'), url: '/api/pens', storeKey: 'uplot-pen', hint: 'pen.hint', placeholder: 'penName',
+  onApply: draw,
+});
 $('draft').onclick = () => { writeForm({ simplify_tol: 0.5, linemerge_tol: 0.5, linesort: true }); save(); convert(); };
 $('normal').onclick = () => { writeForm({ simplify_tol: 0, linemerge_tol: DEFAULTS.linemerge_tol, linesort: true }); save(); convert(); };
 
@@ -581,7 +611,7 @@ function draw() {
 
   const n = Math.round(moves.length * $('progress').value / 1000);
   const stroke = (isDraw, color, width, dash) => {
-    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.beginPath();
+    ctx.strokeStyle = color; ctx.lineWidth = width; ctx.setLineDash(dash); ctx.lineCap = ctx.lineJoin = 'round'; ctx.beginPath();
     for (let i = 0; i < n; i++) {
       const m = moves[i];
       if (m.len === undefined || m.draw !== isDraw) continue;
@@ -590,7 +620,9 @@ function draw() {
     ctx.stroke(); ctx.setLineDash([]);
   };
   if ($('showTravel').checked) stroke(false, css('--travel'), 0.6, [3, 3]);
-  stroke(true, css('--stroke'), Math.max(0.6, 0.4 * view.k), []);
+  // Stiftfarbe und Strichbreite in echtem Maßstab (mindestens ein halbes Pixel, damit nichts verschwindet)
+  stroke(true, /^#[0-9a-f]{6}$/i.test(s.pen_color) ? s.pen_color : css('--stroke'), Math.max(0.5, (+s.pen_width || 0.4) * view.k), []);
+  ctx.lineCap = 'butt'; ctx.lineJoin = 'miter';
 
   // Stiftposition beim Scrubben
   if (n > 0 && n < moves.length) {
@@ -706,10 +738,7 @@ for (const [code, name] of Object.entries(LANGS)) $('lang').add(new Option(name,
 $('lang').value = LANG;
 function relabel() {
   applyI18n();
-  const cur = $('preset').value;   // Profilnamen (Standard-Zusatz) neu beschriften
-  for (const o of $('preset').options) { const p = presetByName(o.value); o.text = p.builtin ? t('builtin', { name: p.name }) : p.name; }
-  $('preset').value = cur;
-  updatePresetUI(); showDerived(); renderStats();
+  printerPresets.relabel(); penPresets.relabel(); showDerived(); renderStats();
   if (result) showMessages(checkBounds(result.settings));
   draw();
 }
@@ -726,8 +755,8 @@ applyI18n();
   DEFAULTS = data.defaults;
   writeForm({ ...DEFAULTS, ...load() });
   syncMargin(); showDerived(); fitView();
-  let stored = null; try { stored = localStorage.getItem('plotter-preset'); } catch {}
-  await loadPresets(stored);
+  const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
+  await Promise.all([printerPresets.reload(stored('plotter-preset')), penPresets.reload(stored('uplot-pen'))]);
   for (const name of data.examples) $('example').add(new Option(name, name));
   draw();
 })();

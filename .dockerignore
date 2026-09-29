@@ -3,4 +3,5 @@ __pycache__
 .git
 examples
 presets.json
+pens.json
 *.tmp

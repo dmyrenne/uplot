@@ -6,6 +6,7 @@ lässt vpype/vpype-gcode den G-Code erzeugen und schickt ihn an den Browser zur�
 
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -17,7 +18,7 @@ BASE = Path(__file__).parent
 VPYPE = str(Path(sys.executable).parent / "vpype")
 EXAMPLES = BASE / "examples"
 # Profile liegen neben der App oder, z. B. im Docker-Container, im Verzeichnis UPLOT_DATA
-PRESETS_FILE = Path(os.environ.get("UPLOT_DATA", BASE)) / "presets.json"
+DATA = Path(os.environ.get("UPLOT_DATA", BASE))
 BUILTIN_PRESET = "Prusa MK3S+"
 
 app = Flask(__name__, static_folder=None)
@@ -63,7 +64,7 @@ DEFAULTS = {
     "pos_y": 0.0,           # gilt, wenn nicht zentriert wird
     "margin": 0.0,
     "angle": 0.0,           # Drehung in Grad, im Uhrzeigersinn
-    "merge_layers": True,
+    "merge_layers": True,   # in der Oberfläche ausgeblendet, bis es Stifte pro Ebene gibt
     "linemerge_tol": 0.05,
     "simplify_tol": 0.0,
     "min_length": 0.0,
@@ -187,64 +188,92 @@ def static_file(name):
 @app.get("/api/defaults")
 def defaults():
     examples = sorted(p.name for p in EXAMPLES.glob("*.svg"))
-    return jsonify(defaults=DEFAULTS, examples=examples)
+    return jsonify(defaults=DEFAULTS | PEN_DEFAULTS, examples=examples)
 
 
-# ---------- Drucker-Profile ----------
-# Ein Profil enthält nur die maschinenbezogenen Werte (Kalibrierung + Geschwindigkeiten),
-# nicht Layout/Optimierung, die zur jeweiligen Zeichnung gehören.
+# ---------- Profile ----------
+# Drucker-Profile enthalten nur die maschinenbezogenen Werte (Kalibrierung + Geschwindigkeiten),
+# nicht Layout/Optimierung, die zur jeweiligen Zeichnung gehören. Stift-Profile enthalten Farbe und
+# Strichbreite; sie wirken nur auf die Vorschau.
 MACHINE_KEYS = ["bed_w", "bed_h", "offset_x", "offset_y", "safety", "z_down", "z_up", "z_travel",
                 "park_x", "park_y", "feed_draw", "feed_travel", "feed_z"]
+PEN_DEFAULTS = {"pen_color": "#1d1d1b", "pen_width": 0.4}
+COLOR = re.compile(r"#[0-9a-f]{6}")
 
 
-def load_presets():
+def clean_pen(data):
+    color = str(data["pen_color"]).lower()
+    width = float(data["pen_width"])
+    if not COLOR.fullmatch(color) or not 0 < width <= 20:
+        raise ValueError(f"pen_color={color!r}, pen_width={width:g}")
+    return {"pen_color": color, "pen_width": width}
+
+
+KINDS = {
+    "printer": {"file": "presets.json", "builtin": BUILTIN_PRESET,
+                "defaults": {k: DEFAULTS[k] for k in MACHINE_KEYS},
+                "clean": lambda data: {k: float(data[k]) for k in MACHINE_KEYS}},
+    "pen": {"file": "pens.json", "builtin": "Fineliner 0.4 mm", "defaults": PEN_DEFAULTS, "clean": clean_pen},
+}
+
+
+def preset_file(kind):
+    return DATA / KINDS[kind]["file"]
+
+
+def load_presets(kind):
     try:
-        return json.loads(PRESETS_FILE.read_text())
+        return json.loads(preset_file(kind).read_text())
     except FileNotFoundError:
         return {}
 
 
-def store_presets(presets):
-    tmp = PRESETS_FILE.with_suffix(".tmp")
+def store_presets(kind, presets):
+    path = preset_file(kind)
+    tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(presets, indent=2, ensure_ascii=False))
-    os.replace(tmp, PRESETS_FILE)
+    os.replace(tmp, path)
 
 
-@app.get("/api/presets")
-def list_presets():
-    # Das Standardprofil darf überschrieben werden; die Änderung liegt dann unter seinem Namen in
-    # presets.json, und "Löschen" setzt es auf die Werkseinstellung zurück.
-    user = load_presets()
-    override = user.pop(BUILTIN_PRESET, None)
-    builtin = {k: DEFAULTS[k] for k in MACHINE_KEYS} | (override or {})
-    return jsonify(builtin=BUILTIN_PRESET,
-                   presets=[{"name": BUILTIN_PRESET, "builtin": True, "customized": override is not None,
+@app.get("/api/presets", defaults={"kind": "printer"})
+@app.get("/api/pens", defaults={"kind": "pen"})
+def list_presets(kind):
+    # Das Standardprofil darf überschrieben werden; die Änderung liegt dann unter seinem Namen in der
+    # Profildatei, und "Löschen" setzt es auf die Werkseinstellung zurück.
+    k = KINDS[kind]
+    user = load_presets(kind)
+    override = user.pop(k["builtin"], None)
+    builtin = k["defaults"] | (override or {})
+    return jsonify(builtin=k["builtin"],
+                   presets=[{"name": k["builtin"], "builtin": True, "customized": override is not None,
                              "settings": builtin}] +
                            [{"name": n, "builtin": False, "settings": v} for n, v in sorted(user.items())])
 
 
-@app.put("/api/presets/<path:name>")
-def save_preset(name):
+@app.put("/api/presets/<path:name>", defaults={"kind": "printer"})
+@app.put("/api/pens/<path:name>", defaults={"kind": "pen"})
+def save_preset(kind, name):
     name = name.strip()
     if not name or len(name) > 60:
         return jsonify(error=msg("name_length")), 400
     data = request.get_json(silent=True) or {}
     try:
-        settings = {k: float(data[k]) for k in MACHINE_KEYS}
+        settings = KINDS[kind]["clean"](data)
     except (KeyError, TypeError, ValueError) as e:
         return jsonify(error=msg("bad_preset", e=e)), 400
-    presets = load_presets()
+    presets = load_presets(kind)
     presets[name] = settings
-    store_presets(presets)
+    store_presets(kind, presets)
     return jsonify(ok=True)
 
 
-@app.delete("/api/presets/<path:name>")
-def delete_preset(name):
-    presets = load_presets()
+@app.delete("/api/presets/<path:name>", defaults={"kind": "printer"})
+@app.delete("/api/pens/<path:name>", defaults={"kind": "pen"})
+def delete_preset(kind, name):
+    presets = load_presets(kind)
     if presets.pop(name, None) is None:
         return jsonify(error=msg("not_found")), 404
-    store_presets(presets)
+    store_presets(kind, presets)
     return jsonify(ok=True)
 
 

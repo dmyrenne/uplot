@@ -30,6 +30,13 @@ const I18N = {
     'draft': 'Entwurf-Preset',
     'normal': 'Normal-Preset',
 
+    'h.pen': 'Stift',
+    'pen_color': 'Farbe',
+    'pen_width': 'Strichbreite (mm)',
+    'tip.pen_width': 'Linienbreite des Stifts, z. B. 0,4 für einen 0,4-mm-Fineliner. Farbe und Breite wirken nur auf die Vorschau, nicht auf den G-Code.',
+    'pen.hint': 'Ein Stift-Profil speichert Farbe und Strichbreite für die Vorschau.',
+    'penName': 'Name, z. B. Gelstift rot 0,5',
+
     'h.profile': 'Drucker-Profil',
     'modified': 'geändert',
     'save': 'Speichern',
@@ -137,6 +144,13 @@ const I18N = {
     'min_length': 'Min. line length (mm)',
     'draft': 'Draft preset',
     'normal': 'Normal preset',
+
+    'h.pen': 'Pen',
+    'pen_color': 'Color',
+    'pen_width': 'Line width (mm)',
+    'tip.pen_width': 'Line width of the pen, e.g. 0.4 for a 0.4 mm fineliner. Color and width only affect the preview, not the G-code.',
+    'pen.hint': 'A pen profile stores color and line width for the preview.',
+    'penName': 'Name, e.g. red gel pen 0.5',
 
     'h.profile': 'Printer profile',
     'modified': 'modified',

@@ -28,10 +28,10 @@ sie stehen unter „Beispiel laden …“ zur Auswahl.
 | Stoppen | `docker compose down` |
 | Logs ansehen | `docker compose logs -f` |
 | Aktualisieren | `docker compose pull && docker compose up -d` (oder `git pull && docker compose up -d --build`) |
-| Profile sichern | `docker compose cp uplot:/data/presets.json .` |
-| Profile einspielen | `docker compose cp presets.json uplot:/data/presets.json` |
+| Profile sichern | `docker compose cp uplot:/data/presets.json .` und `docker compose cp uplot:/data/pens.json .` |
+| Profile einspielen | `docker compose cp presets.json uplot:/data/presets.json` und `docker compose cp pens.json uplot:/data/pens.json` |
 
-- Die Drucker-Profile liegen im Docker-Volume `uplot-data` (im Container unter `/data`) und bleiben bei
+- Die Drucker- und Stift-Profile liegen im Docker-Volume `uplot-data` (im Container unter `/data`) und bleiben bei
   Neustarts und Updates erhalten. `docker compose down -v` löscht sie mit.
 - Der Port ist nur an `127.0.0.1` gebunden. Soll μplot auch von anderen Geräten im Netz erreichbar sein,
   in `compose.yaml` `"127.0.0.1:5055:5055"` durch `"5055:5055"` ersetzen. Es gibt keine Anmeldung, also nur
@@ -58,7 +58,7 @@ Benötigt Python 3.12 (vpype startet unter Python 3.14 nicht). Mit [uv](https://
     ./start.sh              # öffnet http://127.0.0.1:5055
 
 `./start.sh --no-browser` startet den Server, ohne einen Browser zu öffnen; `--port` wählt einen anderen Port.
-Die Profile liegen hier in `presets.json` neben `app.py` (oder im Verzeichnis aus der Umgebungsvariable `UPLOT_DATA`).
+Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neben `app.py` (oder im Verzeichnis aus der Umgebungsvariable `UPLOT_DATA`).
 
 ## Funktionen
 
@@ -69,7 +69,8 @@ Die Profile liegen hier in `presets.json` neben `app.py` (oder im Verzeichnis au
 - Layout: „An Plotfläche anpassen“ skaliert proportional, „Zentrieren“ richtet mittig aus, freier Drehwinkel,
   X/Y spiegeln. Position X/Y ist die untere linke Ecke der Grafik auf dem Bett; die Grafik lässt sich in der
   Vorschau mit der Maus verschieben.
-- Optimierung: Ebenen zusammenführen, Linien sortieren und zusammenfügen, vereinfachen, kurze Linien entfernen.
+- Optimierung: Linien sortieren und zusammenfügen, vereinfachen, kurze Linien entfernen. Alle Ebenen des SVG werden
+  zusammengeführt und mit einem Stift gezeichnet.
 - Kalibrierung: Bettgröße, Düse im Nullpunkt, Sicherheitsabstand, Z-Höhen und Parkposition; die (i)-Symbole erklären
   die Felder. Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts.
   Plotbare Fläche = Bett − Nullpunkt − Sicherheitsabstand. Anleitung zum Ermitteln der Werte:
@@ -77,6 +78,10 @@ Die Profile liegen hier in `presets.json` neben `app.py` (oder im Verzeichnis au
 - Drucker-Profile: Kalibrierung und Geschwindigkeiten als Profil speichern. „Prusa MK3S+“ ist das Standardprofil;
   es lässt sich überschreiben und mit „Zurücksetzen“ wiederherstellen. Profile speichert der Server (siehe
   Installation), die übrigen Einstellungen der Browser.
+- Stift-Profile: Farbe und Strichbreite des Stifts einstellen und als eigenes Profil speichern, z. B. „Gelstift rot 0,5“.
+  Die Vorschau zeichnet die Linien in dieser Farbe und in echter Breite, so sieht man vor dem Plotten, ob
+  Schraffuren zulaufen. Stift-Profile ändern den G-Code nicht. „Fineliner 0.4 mm“ ist das Standardprofil und
+  lässt sich wie das Drucker-Profil überschreiben und zurücksetzen.
 
 - Sprache: Deutsch und Englisch, umschaltbar oben rechts in der Seitenleiste. Beim ersten Aufruf gilt die
   Browsersprache. Die Texte liegen in `static/i18n.js`; für eine weitere Sprache dort einen Block kopieren,
