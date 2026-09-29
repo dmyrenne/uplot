@@ -39,6 +39,15 @@ sie stehen unter „Beispiel laden …“ zur Auswahl.
 - Anderer Port: in `compose.yaml` die linke Portnummer ändern, z. B. `"127.0.0.1:8080:5055"`.
 - Die Container starten automatisch mit Docker neu (`restart: unless-stopped`).
 
+### Image-Builds
+
+Ein GitHub-Actions-Workflow (`.github/workflows/docker.yml`) baut das Image für amd64 und arm64 und
+veröffentlicht es in `ghcr.io/dmyrenne/uplot`:
+
+- Push auf `main` → `:latest` und `:sha-<commit>`
+- Tag `v1.2.3` (`git tag v1.2.3 && git push --tags`) → zusätzlich `:1.2.3` und `:1.2`
+- Pull Requests werden nur gebaut, nicht veröffentlicht.
+
 ## Installation ohne Docker
 
 Benötigt Python 3.12 (vpype startet unter Python 3.14 nicht). Mit [uv](https://github.com/astral-sh/uv):
