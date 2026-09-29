@@ -16,7 +16,8 @@ from flask import Flask, jsonify, request, send_from_directory
 BASE = Path(__file__).parent
 VPYPE = str(Path(sys.executable).parent / "vpype")
 EXAMPLES = BASE / "examples"
-PRESETS_FILE = BASE / "presets.json"
+# Profile liegen neben der App oder, z. B. im Docker-Container, im Verzeichnis UPLOT_DATA
+PRESETS_FILE = Path(os.environ.get("UPLOT_DATA", BASE)) / "presets.json"
 BUILTIN_PRESET = "Prusa MK3S+"
 
 app = Flask(__name__, static_folder=None)
@@ -266,9 +267,10 @@ if __name__ == "__main__":
     import webbrowser
 
     ap = argparse.ArgumentParser()
+    ap.add_argument("--host", default="127.0.0.1")
     ap.add_argument("--port", type=int, default=5055)
     ap.add_argument("--no-browser", action="store_true")
     args = ap.parse_args()
     if not args.no_browser:
         webbrowser.open(f"http://127.0.0.1:{args.port}")
-    app.run(host="127.0.0.1", port=args.port)
+    app.run(host=args.host, port=args.port)

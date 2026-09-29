@@ -1,0 +1,12 @@
+services:
+  uplot:
+    build: .
+    image: uplot
+    ports:
+      - "127.0.0.1:5055:5055"   # nur vom eigenen Rechner erreichbar
+    volumes:
+      - uplot-data:/data        # Drucker-Profile (presets.json)
+    restart: unless-stopped
+
+volumes:
+  uplot-data:
