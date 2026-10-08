@@ -13,6 +13,9 @@ import tempfile
 from pathlib import Path
 
 from flask import Flask, jsonify, request, send_from_directory
+from PIL import Image
+
+import raster
 
 BASE = Path(__file__).parent
 VPYPE = str(Path(sys.executable).parent / "vpype")
@@ -33,16 +36,20 @@ MESSAGES = {
     "name_length": {"de": "Der Name muss 1–60 Zeichen lang sein.", "en": "The name must be 1–60 characters long."},
     "bad_preset": {"de": "Ungültiger oder fehlender Wert: {e}", "en": "Invalid or missing value: {e}"},
     "not_found": {"de": "Profil nicht gefunden.", "en": "Profile not found."},
+    "no_image": {"de": "Keine Bilddatei übergeben.", "en": "No image file received."},
+    "bad_image": {"de": "Das Bild lässt sich nicht lesen (nur PNG und JPG).",
+                  "en": "The image could not be read (PNG and JPG only)."},
 }
 
 
-def msg(key, **kw):
+def msg(name, **kw):
     lang = request.accept_languages.best_match(["de", "en"], default="en")
-    return MESSAGES[key][lang].format(**kw)
+    return MESSAGES[name][lang].format(**kw)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
 # Standardwerte = Werte aus plot.sh / vpype.toml / docs/calibrating.md des Originalrepos
 DEFAULTS = {
+    "machine": "printer",   # "printer" (Marlin/Prusa) oder "axidraw" (AxiDraw/NextDraw über µprint)
     "offset_x": 45.0,       # Düse im Nullpunkt: Druckerkoordinate, bei der der Stift auf der unteren
     "offset_y": 38.0,       # linken Ecke des Betts (0|0) steht (translate in plot.sh)
     "bed_w": 250.0,         # Druckbett MK3S+
@@ -70,6 +77,10 @@ DEFAULTS = {
     "min_length": 0.0,
     "linesort": True,
 }
+
+# Umwandlung von PNG/JPG in SVG (raster.py); Schwelle in Prozent Helligkeit
+TRACE_DEFAULTS = {"trace_mode": "hatch", "trace_threshold": 50.0, "trace_spacing": 1.0, "trace_levels": 3.0,
+                  "trace_centerline": 10.0}
 
 CONFIG_TEMPLATE = """[gwrite.plotter]
 unit = "mm"
@@ -113,18 +124,82 @@ M2                              ; program end
 '''
 """
 
+# AxiDraw-Modus, Vertrag mit µprint (uplot#1): erste Zeile ist die Formatkennung, Z0 = Stift unten,
+# Z1 = Stift oben, keine Referenzfahrt und keine Spindel, am Ende zurück auf den Nullpunkt, weil das
+# AxiDraw seine Position nur relativ zur Einschaltposition kennt.
+AXIDRAW_TEMPLATE = """[gwrite.plotter]
+unit = "mm"
+invert_y = false
+invert_x = false
+
+document_start = '''; uplot-axidraw 1
+G21                             ; units are millimeters
+G90                             ; absolute mode
+G00 Z1                          ; pen up
+'''
+
+layer_start = '''
+; -- start layer --
+'''
+
+segment_first = '''
+G00 X{{x:.4f}} Y{{y:.4f}} F{feed_travel:g}   ; move
+G00 Z0                          ; pen down
+'''
+
+segment = '''
+G01 X{{x:.4f}} Y{{y:.4f}} F{feed_draw:g}     ; draw
+'''
+
+segment_last = '''
+G01 X{{x:.4f}} Y{{y:.4f}} F{feed_draw:g}     ; draw
+G00 Z1                          ; pen up
+'''
+
+document_end = '''
+; -- shutdown
+G00 Z1                          ; pen up
+G00 X0 Y0 F{feed_travel:g}      ; back to origin
+M84                             ; disable motors
+M2                              ; program end
+'''
+"""
+
+# Zeichenflächen der AxiDraw-/NextDraw-Modelle in mm (x_travel_*/y_travel_* aus axidraw_conf.py von
+# Evil Mad Scientist; NextDraw laut Bantam Tools baugleich mit den AxiDraw-Größen)
+AXIDRAW_MODELS = [
+    {"name": "AxiDraw V3, SE/A4 · NextDraw 8511", "w": 300.0, "h": 218.0},
+    {"name": "AxiDraw V3/A3, SE/A3 · NextDraw 1117", "w": 430.0, "h": 297.0},
+    {"name": "AxiDraw V3 XLX", "w": 595.0, "h": 218.0},
+    {"name": "AxiDraw SE/A2", "w": 594.0, "h": 432.0},
+    {"name": "AxiDraw SE/A1 · NextDraw 2234", "w": 864.0, "h": 594.0},
+    {"name": "AxiDraw V3/B6", "w": 190.0, "h": 140.0},
+    {"name": "AxiDraw MiniKit", "w": 160.0, "h": 101.6},
+]
+
+# Im AxiDraw-Modus fest: kein Düsen-Stift-Versatz, Stifthöhen laut Vertrag mit µprint
+AXIDRAW_FIXED = {"offset_x": 0.0, "offset_y": 0.0, "z_down": 0.0, "z_up": 1.0, "z_travel": 1.0}
+
+
+def clean_machine(raw):
+    return "axidraw" if raw == "axidraw" else "printer"
+
 
 def parse_settings(form):
     s = {}
     for key, default in DEFAULTS.items():
         raw = form.get(key)
-        if isinstance(default, bool):
+        if key == "machine":
+            s[key] = clean_machine(raw)
+        elif isinstance(default, bool):
             s[key] = raw in ("1", "true", "on") if raw is not None else default
         else:
             try:
                 s[key] = float(raw) if raw not in (None, "") else default
             except ValueError:
                 raise ValueError(msg("invalid_value", key=key, raw=raw))
+    if s["machine"] == "axidraw":
+        s |= AXIDRAW_FIXED
     s["area_w"], s["area_h"] = plot_area(s)
     if s["area_w"] <= 0 or s["area_h"] <= 0:
         raise ValueError(msg("empty_area"))
@@ -134,12 +209,14 @@ def parse_settings(form):
 def plot_area(s):
     """Plotbare Fläche: Der Stift steht bei Düse im Nullpunkt auf 0|0 des Betts. Weil er um den
     Nullpunkt versetzt zur Düse sitzt, erreicht er rechts/hinten entsprechend weniger vom Bett;
-    davon geht noch der Sicherheitsabstand ab."""
+    davon geht noch der Sicherheitsabstand ab. Beim AxiDraw ist der Versatz 0, die Fläche ist dann
+    direkt die Zeichenfläche."""
     return (round(s["bed_w"] - s["offset_x"] - s["safety"], 3),
             round(s["bed_h"] - s["offset_y"] - s["safety"], 3))
 
 
 def build_pipeline(s, svg_path, gcode_path):
+    axidraw = s["machine"] == "axidraw"
     cmd = ["read", str(svg_path)]
     if s["merge_layers"]:
         cmd += ["lmove", "all", "1"]
@@ -155,11 +232,13 @@ def build_pipeline(s, svg_path, gcode_path):
         # skalieren und/oder mittig auf die plotbare Fläche legen
         cmd += ["layout"] + (["--fit-to-margins", f"{s['margin']}mm"] if s["fit"] else []) + page
     if not s["center"]:
-        # untere linke Ecke der Grafik auf 0|0 legen, danach um die Position verschieben.
-        # SVG-y zeigt nach unten, "bottom" liegt nach der Umrechnung unten auf dem Drucker.
-        cmd += ["layout", "--align", "left", "--valign", "bottom"] + page
-    # SVG hat y nach unten, der Drucker y nach oben -> an der Flächenmitte umklappen
-    cmd += ["scale", "--origin", "0", f"{s['area_h'] / 2}mm", "--", "1", "-1"]
+        # Ecke der Grafik am Nullpunkt auf 0|0 legen, danach um die Position verschieben. Drucker: untere
+        # linke Ecke (SVG-y zeigt nach unten, "bottom" liegt nach der Umrechnung unten auf dem Drucker).
+        # AxiDraw: Nullpunkt oben links, y zeigt wie im SVG nach unten -> obere linke Ecke.
+        cmd += ["layout", "--align", "left", "--valign", "top" if axidraw else "bottom"] + page
+    if not axidraw:
+        # SVG hat y nach unten, der Drucker y nach oben -> an der Flächenmitte umklappen
+        cmd += ["scale", "--origin", "0", f"{s['area_h'] / 2}mm", "--", "1", "-1"]
     dx, dy = s["offset_x"], s["offset_y"]
     if not s["center"]:
         dx, dy = dx + s["pos_x"], dy + s["pos_y"]
@@ -188,17 +267,23 @@ def static_file(name):
 @app.get("/api/defaults")
 def defaults():
     examples = sorted(p.name for p in EXAMPLES.glob("*.svg"))
-    return jsonify(defaults=DEFAULTS | PEN_DEFAULTS, examples=examples)
+    return jsonify(defaults=DEFAULTS | PEN_DEFAULTS | TRACE_DEFAULTS, examples=examples,
+                   axidraw_models=AXIDRAW_MODELS)
 
 
 # ---------- Profile ----------
 # Drucker-Profile enthalten nur die maschinenbezogenen Werte (Kalibrierung + Geschwindigkeiten),
 # nicht Layout/Optimierung, die zur jeweiligen Zeichnung gehören. Stift-Profile enthalten Farbe und
 # Strichbreite; sie wirken nur auf die Vorschau.
-MACHINE_KEYS = ["bed_w", "bed_h", "offset_x", "offset_y", "safety", "z_down", "z_up", "z_travel",
+MACHINE_KEYS = ["machine", "bed_w", "bed_h", "offset_x", "offset_y", "safety", "z_down", "z_up", "z_travel",
                 "park_x", "park_y", "feed_draw", "feed_travel", "feed_z"]
 PEN_DEFAULTS = {"pen_color": "#1d1d1b", "pen_width": 0.4}
 COLOR = re.compile(r"#[0-9a-f]{6}")
+
+
+def clean_printer(data):
+    out = {k: float(data[k]) for k in MACHINE_KEYS if k != "machine"}
+    return {"machine": clean_machine(data.get("machine"))} | out
 
 
 def clean_pen(data):
@@ -212,7 +297,7 @@ def clean_pen(data):
 KINDS = {
     "printer": {"file": "presets.json", "builtin": BUILTIN_PRESET,
                 "defaults": {k: DEFAULTS[k] for k in MACHINE_KEYS},
-                "clean": lambda data: {k: float(data[k]) for k in MACHINE_KEYS}},
+                "clean": clean_printer},
     "pen": {"file": "pens.json", "builtin": "Fineliner 0.4 mm", "defaults": PEN_DEFAULTS, "clean": clean_pen},
 }
 
@@ -243,11 +328,12 @@ def list_presets(kind):
     k = KINDS[kind]
     user = load_presets(kind)
     override = user.pop(k["builtin"], None)
+    # ältere Profile ohne neuere Felder (z. B. machine) mit den Standardwerten ergänzen
     builtin = k["defaults"] | (override or {})
     return jsonify(builtin=k["builtin"],
                    presets=[{"name": k["builtin"], "builtin": True, "customized": override is not None,
                              "settings": builtin}] +
-                           [{"name": n, "builtin": False, "settings": v} for n, v in sorted(user.items())])
+                           [{"name": n, "builtin": False, "settings": k["defaults"] | v} for n, v in sorted(user.items())])
 
 
 @app.put("/api/presets/<path:name>", defaults={"kind": "printer"})
@@ -282,6 +368,36 @@ def example(name):
     return send_from_directory(EXAMPLES, name, mimetype="image/svg+xml")
 
 
+@app.post("/api/trace")
+def trace():
+    upload = request.files.get("image")
+    if upload is None:
+        return jsonify(error=msg("no_image")), 400
+    def num(key, lo, hi):
+        raw = request.form.get(key)
+        try:
+            v = float(raw) if raw not in (None, "") else TRACE_DEFAULTS[key]
+        except ValueError:
+            raise ValueError(msg("invalid_value", key=key, raw=raw))
+        return min(max(v, lo), hi)
+
+    try:
+        s = parse_settings(request.form)
+        mode = "outline" if request.form.get("trace_mode") == "outline" else "hatch"
+        threshold = num("trace_threshold", 0, 100) / 100
+        spacing = num("trace_spacing", 0.2, 20)
+        levels = int(num("trace_levels", 1, 4))
+        centerline = num("trace_centerline", 0, 100)
+    except ValueError as e:
+        return jsonify(error=str(e)), 400
+    try:
+        svg = raster.image_to_svg(upload.stream, mode, s["area_w"], s["area_h"], threshold, spacing, levels,
+                                  centerline)
+    except (OSError, Image.DecompressionBombError):
+        return jsonify(error=msg("bad_image")), 400
+    return jsonify(svg=svg)
+
+
 @app.post("/api/convert")
 def convert():
     upload = request.files.get("svg")
@@ -296,7 +412,8 @@ def convert():
         tmp = Path(tmp)
         svg_path, gcode_path, cfg_path = tmp / "in.svg", tmp / "out.gcode", tmp / "vpype.toml"
         upload.save(svg_path)
-        cfg_path.write_text(CONFIG_TEMPLATE.format(**s))
+        template = AXIDRAW_TEMPLATE if s["machine"] == "axidraw" else CONFIG_TEMPLATE
+        cfg_path.write_text(template.format(**s))
         pipeline = build_pipeline(s, svg_path, gcode_path)
         proc = subprocess.run(
             [VPYPE, "--config", str(cfg_path), *pipeline],

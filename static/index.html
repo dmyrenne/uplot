@@ -135,13 +135,28 @@
   <div class="drop" id="drop">
     <strong id="fileName" data-i18n="drop.title"></strong>
     <span data-i18n="drop.sub"></span>
-    <input type="file" id="file" accept=".svg,image/svg+xml" hidden>
+    <input type="file" id="file" accept=".svg,.png,.jpg,.jpeg,image/svg+xml,image/png,image/jpeg" hidden>
   </div>
   <div class="row" style="margin-top:8px">
     <select id="example"><option value="" data-i18n="example"></option></select>
   </div>
 
   <form id="form">
+    <div id="traceBox" hidden>
+      <h2 data-i18n="h.trace"></h2>
+      <div class="grid">
+        <label><span class="lt"><span data-i18n="trace_mode"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.trace_mode">i</span></span>
+          <select name="trace_mode"><option value="hatch" data-i18n="trace.hatch"></option><option value="outline" data-i18n="trace.outline"></option></select></label>
+        <label data-trace="outline"><span class="lt"><span data-i18n="trace_threshold"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.trace_threshold">i</span></span><input type="number" name="trace_threshold" step="5" min="0" max="100"></label>
+        <label data-trace="outline"><span class="lt"><span data-i18n="trace_centerline"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.trace_centerline">i</span></span><input type="number" name="trace_centerline" step="0.5" min="0" max="100"></label>
+        <label data-trace="hatch"><span class="lt"><span data-i18n="trace_spacing"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.trace_spacing">i</span></span><input type="number" name="trace_spacing" step="0.1" min="0.2" max="20"></label>
+        <label data-trace="hatch"><span class="lt"><span data-i18n="trace_levels"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.trace_levels">i</span></span><input type="number" name="trace_levels" step="1" min="1" max="4"></label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button type="button" id="downloadSvg" data-i18n="downloadSvg" disabled></button>
+      </div>
+    </div>
+
     <h2 data-i18n="h.layout"></h2>
     <div class="grid">
       <label class="check"><input type="checkbox" name="fit"> <span data-i18n="fit"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.fit">i</span></label>
@@ -176,25 +191,33 @@
     </div>
 
     <h2 data-i18n="h.profile"></h2>
-    <div class="presets" id="printerPresets"></div>
+    <div class="presets" id="printerPresets">
+      <div class="grid" data-role="fields" style="margin-top:8px">
+        <label><span class="lt"><span data-i18n="machine"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.machine">i</span></span>
+          <select name="machine"><option value="printer" data-i18n="machine.printer"></option><option value="axidraw" data-i18n="machine.axidraw"></option></select></label>
+        <label data-machine="axidraw"><span class="lt"><span data-i18n="axidraw_model"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.axidraw_model">i</span></span>
+          <select id="axidrawModel"><option value="" data-i18n="axidraw_model.custom"></option></select></label>
+      </div>
+    </div>
 
     <details>
       <summary data-i18n="h.calib"></summary>
       <div class="grid">
-        <label><span class="lt"><span data-i18n="bed_w"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.bed">i</span></span><input type="number" name="bed_w" step="1" min="1"></label>
-        <label><span class="lt"><span data-i18n="bed_h"></span></span><input type="number" name="bed_h" step="1" min="1"></label>
-        <label><span class="lt"><span data-i18n="offset_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.offset">i</span></span><input type="number" name="offset_x" step="0.1"></label>
-        <label><span class="lt"><span data-i18n="offset_y"></span></span><input type="number" name="offset_y" step="0.1"></label>
+        <label><span class="lt"><span data-i18n="bed_w" data-i18n-axidraw="area_w"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.bed" data-i18n-axidraw-tip="tip.area">i</span></span><input type="number" name="bed_w" step="1" min="1"></label>
+        <label><span class="lt"><span data-i18n="bed_h" data-i18n-axidraw="area_h"></span></span><input type="number" name="bed_h" step="1" min="1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="offset_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.offset">i</span></span><input type="number" name="offset_x" step="0.1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="offset_y"></span></span><input type="number" name="offset_y" step="0.1"></label>
         <label><span class="lt"><span data-i18n="safety"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.safety">i</span></span><input type="number" name="safety" step="0.5" min="0"></label>
         <div class="derived" id="derived"></div>
-        <label><span class="lt"><span data-i18n="z_down"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_down">i</span></span><input type="number" name="z_down" step="0.1"></label>
-        <label><span class="lt"><span data-i18n="z_up"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_up">i</span></span><input type="number" name="z_up" step="0.1"></label>
-        <label><span class="lt"><span data-i18n="z_travel"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_travel">i</span></span><input type="number" name="z_travel" step="0.1"></label>
-        <span></span>
-        <label><span class="lt"><span data-i18n="park_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.park">i</span></span><input type="number" name="park_x" step="1"></label>
-        <label><span class="lt"><span data-i18n="park_y"></span></span><input type="number" name="park_y" step="1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="z_down"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_down">i</span></span><input type="number" name="z_down" step="0.1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="z_up"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_up">i</span></span><input type="number" name="z_up" step="0.1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="z_travel"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_travel">i</span></span><input type="number" name="z_travel" step="0.1"></label>
+        <span data-machine="printer"></span>
+        <label data-machine="printer"><span class="lt"><span data-i18n="park_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.park">i</span></span><input type="number" name="park_x" step="1"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="park_y"></span></span><input type="number" name="park_y" step="1"></label>
       </div>
-      <p class="hint" data-i18n-html="calib.hint.html"></p>
+      <p class="hint" data-i18n-html="calib.hint.html" data-machine="printer"></p>
+      <p class="hint" data-i18n="calib.hint.axidraw" data-machine="axidraw"></p>
     </details>
 
     <details>
@@ -202,7 +225,7 @@
       <div class="grid">
         <label><span class="lt"><span data-i18n="feed_draw"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_draw">i</span></span><input type="number" name="feed_draw" step="100"></label>
         <label><span class="lt"><span data-i18n="feed_travel"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_travel">i</span></span><input type="number" name="feed_travel" step="100"></label>
-        <label><span class="lt"><span data-i18n="feed_z"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_z">i</span></span><input type="number" name="feed_z" step="10"></label>
+        <label data-machine="printer"><span class="lt"><span data-i18n="feed_z"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.feed_z">i</span></span><input type="number" name="feed_z" step="10"></label>
       </div>
     </details>
   </form>
@@ -237,7 +260,7 @@ const $ = (id) => document.getElementById(id);
 const form = $('form');
 // API-Aufrufe mit der gewählten Sprache, damit auch Fehlermeldungen des Servers passen
 const api = (url, opts = {}) => fetch(url, { ...opts, headers: { ...opts.headers, 'Accept-Language': LANG } });
-let DEFAULTS = {}, svgFile = null, result = null, moves = [], view = null;
+let DEFAULTS = {}, MODELS = [], svgFile = null, imageFile = null, result = null, moves = [], view = null;
 
 // ---------- Einstellungen ----------
 function readForm() {
@@ -260,11 +283,14 @@ function save() { try { localStorage.setItem('plotter-settings', JSON.stringify(
 function load() { try { return JSON.parse(localStorage.getItem('plotter-settings') || '{}'); } catch { return {}; } }
 
 // ---------- Datei ----------
+const isImage = (file) => /^image\/(png|jpeg)$/.test(file.type) || /\.(png|jpe?g)$/i.test(file.name);
 function setFile(file) {
-  svgFile = file;
   delete $('fileName').dataset.i18n;
   $('fileName').textContent = file.name;
-  convert();
+  // PNG/JPG wandelt der Server erst in ein SVG um (raster.py), danach geht es weiter wie mit einem SVG
+  imageFile = isImage(file) ? file : null;
+  $('traceBox').hidden = !imageFile;
+  if (imageFile) { svgFile = null; trace(); } else { svgFile = file; convert(); }
 }
 $('drop').onclick = () => $('file').click();
 $('file').onchange = (e) => e.target.files[0] && setFile(e.target.files[0]);
@@ -281,10 +307,52 @@ $('example').onchange = async (e) => {
   e.target.value = '';
 };
 
+// ---------- Maschinentyp ----------
+// AxiDraw: kein Düsen-Stift-Versatz, feste Stifthöhen (Z0 unten, Z1 oben), Nullpunkt oben links, y nach unten.
+// Gleiche Werte wie AXIDRAW_FIXED in app.py; die ausgeblendeten Felder behalten ihre Druckerwerte.
+const AXIDRAW_FIXED = { offset_x: 0, offset_y: 0, z_down: 0, z_up: 1, z_travel: 1 };
+const isAxidraw = () => form.elements.machine.value === 'axidraw';
+const effective = (s) => s.machine === 'axidraw' ? { ...s, ...AXIDRAW_FIXED } : s;
+function syncMachine() {
+  const ax = isAxidraw();
+  for (const el of document.querySelectorAll('[data-machine]')) el.hidden = el.dataset.machine !== (ax ? 'axidraw' : 'printer');
+  // Beschriftungen mit AxiDraw-Variante umschalten (Original in data-i18n-printer merken)
+  for (const el of document.querySelectorAll('[data-i18n-axidraw]')) {
+    el.dataset.i18nPrinter ??= el.dataset.i18n;
+    el.dataset.i18n = ax ? el.dataset.i18nAxidraw : el.dataset.i18nPrinter;
+  }
+  for (const el of document.querySelectorAll('[data-i18n-axidraw-tip]')) {
+    el.dataset.i18nPrinterTip ??= el.dataset.i18nTip;
+    el.dataset.i18nTip = ax ? el.dataset.i18nAxidrawTip : el.dataset.i18nPrinterTip;
+  }
+  applyI18n();
+  syncModel();
+}
+// Modellvorlage passend zu den eingestellten Maßen anzeigen
+function syncModel() {
+  const s = readForm(), i = MODELS.findIndex((m) => m.w === +s.bed_w && m.h === +s.bed_h);
+  $('axidrawModel').value = i < 0 ? '' : String(i);
+}
+function setModel(i) {
+  writeForm({ bed_w: MODELS[i].w, bed_h: MODELS[i].h });
+  $('axidrawModel').value = String(i);
+  form.dispatchEvent(new Event('input'));   // Fläche, Vorschau und Profil-Status aktualisieren
+  save(); fitView(); draw(); convert();
+}
+$('axidrawModel').onchange = (e) => e.target.value !== '' && setModel(+e.target.value);
+form.elements.machine.addEventListener('change', () => {
+  syncMachine();
+  // beim Wechsel auf AxiDraw mit Druckbett-Maßen die kleinste gängige Größe vorschlagen
+  if (isAxidraw() && $('axidrawModel').value === '') setModel(0);
+  fitView(); draw();
+});
+form.addEventListener('input', (e) => { if (e.target.name === 'bed_w' || e.target.name === 'bed_h') syncModel(); });
+
 // ---------- Plotbare Fläche ----------
 // Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts, der Versatz Stift→Düse ist also
 // genau der Nullpunkt. Gleiche Formel wie plot_area() in app.py.
 function plotArea(s) {
+  s = effective(s);
   const reachW = +s.bed_w - +s.offset_x, reachH = +s.bed_h - +s.offset_y;   // vom Stift erreichbar
   return { reachW, reachH, w: reachW - +s.safety, h: reachH - +s.safety };
 }
@@ -295,7 +363,7 @@ function showDerived() {
   const bad = a.w <= 0 || a.h <= 0;
   $('derived').className = 'derived' + (bad ? ' bad' : '');
   $('derived').innerHTML = t('area.html', { w: f1(a.w), h: f1(a.h) }) + (bad ? '<br>' + t('area.empty') : '');
-  $('bedLegend').textContent = t('legend.bed', { w: f1(BED.w), h: f1(BED.h) });
+  $('bedLegend').textContent = t(isAxidraw() ? 'legend.area' : 'legend.bed', { w: f1(BED.w), h: f1(BED.h) });
 }
 form.addEventListener('input', () => { showDerived(); draw(); });
 
@@ -330,8 +398,46 @@ form.addEventListener('input', (e) => {
   if (!e.target.name) return;   // z. B. Profilauswahl/-name: keine Einstellung
   save();
   if (PEN_KEYS.includes(e.target.name)) return;   // Stift wirkt nur auf die Vorschau
-  clearTimeout(timer); timer = setTimeout(convert, 400);
+  const next = e.target.name.startsWith('trace_') ? trace : convert;
+  clearTimeout(timer); timer = setTimeout(next, 400);
 });
+// Felder je nach Verfahren: Schwelle nur für Umriss, Abstand/Stufen nur für Schraffur
+const syncTrace = () => {
+  for (const el of $('traceBox').querySelectorAll('[data-trace]')) el.hidden = el.dataset.trace !== form.elements.trace_mode.value;
+};
+form.elements.trace_mode.addEventListener('change', syncTrace);
+
+function formData(file, field) {
+  const fd = new FormData();
+  fd.append(field, file);
+  for (const [k, v] of Object.entries(readForm())) fd.append(k, typeof v === 'boolean' ? (v ? '1' : '0') : v);
+  return fd;
+}
+function failed(err) {
+  result = null; moves = []; box = null; draw(); renderStats();
+  showMessages([String(err.message || err)]);
+}
+
+// Bild → SVG; das Ergebnis wird auf die plotbare Fläche eingepasst
+async function trace() {
+  if (!imageFile) return;
+  const my = ++seq;
+  $('download').disabled = $('downloadSvg').disabled = true;
+  showMessages([t('tracing')], true);
+  let data;
+  try {
+    const res = await api('/api/trace', { method: 'POST', body: formData(imageFile, 'image') });
+    data = await res.json();
+    if (!res.ok) throw new Error(data.error || res.statusText);
+  } catch (err) {
+    if (my === seq) failed(err);
+    return;
+  }
+  if (my !== seq) return;
+  svgFile = new File([data.svg], imageFile.name.replace(/\.\w+$/, '') + '.svg', { type: 'image/svg+xml' });
+  $('downloadSvg').disabled = false;
+  convert();
+}
 // ---------- Profile (Drucker und Stift) ----------
 // Beide Profilarten funktionieren gleich: Auswahl, Speichern, Speichern unter, Verwerfen, Löschen.
 // Das Standardprofil lässt sich überschreiben und zurücksetzen.
@@ -453,7 +559,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
 }
 const printerPresets = presetManager({
   root: $('printerPresets'), url: '/api/presets', storeKey: 'plotter-preset', hint: 'preset.hint', placeholder: 'presetName',
-  onApply: () => { showDerived(); fitView(); convert(); },
+  onApply: () => { syncMachine(); showDerived(); fitView(); convert(); },
 });
 const penPresets = presetManager({
   root: $('penPresets'), url: '/api/pens', storeKey: 'uplot-pen', hint: 'pen.hint', placeholder: 'penName',
@@ -465,9 +571,7 @@ $('normal').onclick = () => { writeForm({ simplify_tol: 0, linemerge_tol: DEFAUL
 async function convert() {
   if (!svgFile) return;
   const my = ++seq;
-  const fd = new FormData();
-  fd.append('svg', svgFile);
-  for (const [k, v] of Object.entries(readForm())) fd.append(k, typeof v === 'boolean' ? (v ? '1' : '0') : v);
+  const fd = formData(svgFile, 'svg');
   $('download').disabled = true;
   showMessages([t('calculating')], true);
   let data;
@@ -476,9 +580,7 @@ async function convert() {
     data = await res.json();
     if (!res.ok) throw new Error(data.error || res.statusText);
   } catch (err) {
-    if (my !== seq) return;
-    result = null; moves = []; box = null; draw(); renderStats();
-    showMessages([String(err.message || err)]);
+    if (my === seq) failed(err);
     return;
   }
   if (my !== seq) return;
@@ -515,7 +617,7 @@ function parseGcode(text) {
   }
   return out;
 }
-const penDownZ = () => parseFloat(form.elements.z_down.value);
+const penDownZ = () => isAxidraw() ? AXIDRAW_FIXED.z_down : parseFloat(form.elements.z_down.value);
 const round1 = (v) => Math.round(v * 10) / 10;
 
 // Umriss der gezeichneten Linien in Stiftkoordinaten (Bett)
@@ -582,13 +684,16 @@ const canvas = $('canvas'), ctx = canvas.getContext('2d');
 const css = (n) => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 
 function fitView() {
-  const r = canvas.getBoundingClientRect(), padL = 44, padB = 34, pad = 20;
-  const k = Math.min((r.width - padL - pad) / BED.w, (r.height - padB - pad) / BED.h);
-  view = { k, ox: padL + (r.width - padL - pad - BED.w * k) / 2, oy: pad + (r.height - padB - pad - BED.h * k) / 2 };
+  // Platz für die X-Beschriftung an der Nullpunktkante: unten beim Drucker, oben beim AxiDraw
+  const r = canvas.getBoundingClientRect(), padL = 44, pad = 20, padT = isAxidraw() ? 34 : pad, padB = isAxidraw() ? pad : 34;
+  const k = Math.min((r.width - padL - pad) / BED.w, (r.height - padT - padB) / BED.h);
+  view = { k, ox: padL + (r.width - padL - pad - BED.w * k) / 2, oy: padT + (r.height - padT - padB - BED.h * k) / 2 };
 }
-// Bettkoordinaten (Nullpunkt unten links, y nach oben) -> Bildschirm
+// Bettkoordinaten -> Bildschirm. Drucker: Nullpunkt unten links, y nach oben. AxiDraw: oben links, y nach unten.
 const sx = (x) => view.ox + x * view.k;
-const sy = (y) => view.oy + (BED.h - y) * view.k;
+const sy = (y) => view.oy + (isAxidraw() ? y : BED.h - y) * view.k;
+// Rechteck vom Nullpunkt bis w × h, unabhängig von der y-Richtung
+const originRect = (w, h) => [sx(0), Math.min(sy(0), sy(h)), w * view.k, h * view.k];
 
 function draw() {
   const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
@@ -597,17 +702,17 @@ function draw() {
   if (!view) fitView();
   ctx.clearRect(0, 0, r.width, r.height);
 
-  const s = readForm();
+  const s = effective(readForm()), ax = isAxidraw();
   const ox = +s.offset_x, oy = +s.offset_y;
   const sh = shift();
   const dx = -ox + sh.x, dy = -oy + sh.y;   // G-Code (Düse) -> Stift auf dem Bett, plus laufende Verschiebung
 
   // Druckbett
   ctx.fillStyle = css('--bed');
-  ctx.fillRect(sx(0), sy(BED.h), BED.w * view.k, BED.h * view.k);
+  ctx.fillRect(...originRect(BED.w, BED.h));
   // Schraffur für den nicht plotbaren Teil (die plotbare Fläche wird weiter unten darübergelegt)
   ctx.save();
-  ctx.beginPath(); ctx.rect(sx(0), sy(BED.h), BED.w * view.k, BED.h * view.k); ctx.clip();
+  ctx.beginPath(); ctx.rect(...originRect(BED.w, BED.h)); ctx.clip();
   ctx.strokeStyle = css('--hatch'); ctx.lineWidth = 1; ctx.beginPath();
   const bw = BED.w * view.k, bh = BED.h * view.k;
   for (let d = -bh; d < bw; d += 8) { ctx.moveTo(sx(0) + d, sy(0)); ctx.lineTo(sx(0) + d + bh, sy(BED.h)); }
@@ -619,9 +724,10 @@ function draw() {
   ctx.moveTo(sx(BED.w), sy(0)); ctx.lineTo(sx(BED.w), sy(BED.h)); ctx.lineTo(sx(0), sy(BED.h));
   ctx.stroke();
   ctx.fillStyle = css('--muted'); ctx.font = "11px 'JetBrains Mono', monospace";
-  ctx.textAlign = 'center'; ctx.textBaseline = 'top';
-  ctx.fillText('0', sx(0) - 8, sy(0) + 6);
-  for (let x = 50; x <= BED.w; x += 50) ctx.fillText(x, sx(x), sy(0) + 6);
+  ctx.textAlign = 'center'; ctx.textBaseline = ax ? 'bottom' : 'top';
+  const ly = sy(0) + (ax ? -6 : 6);
+  ctx.fillText('0', sx(0) - 8, ly);
+  for (let x = 50; x <= BED.w; x += 50) ctx.fillText(x, sx(x), ly);
   ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
   for (let y = 50; y <= BED.h; y += 50) ctx.fillText(y, sx(0) - 6, sy(y));   // die 0 steht schon an der X-Achse
 
@@ -630,9 +736,9 @@ function draw() {
   const rw = Math.max(0, Math.min(area.reachW, BED.w)), rh = Math.max(0, Math.min(area.reachH, BED.h));
   if (rw > 0 && rh > 0) {
     ctx.fillStyle = css('--area');
-    ctx.fillRect(sx(0), sy(rh), rw * view.k, rh * view.k);
+    ctx.fillRect(...originRect(rw, rh));
     ctx.save();
-    ctx.beginPath(); ctx.rect(sx(0), sy(rh), rw * view.k, rh * view.k); ctx.clip();
+    ctx.beginPath(); ctx.rect(...originRect(rw, rh)); ctx.clip();
     ctx.strokeStyle = css('--safety'); ctx.lineWidth = 1; ctx.beginPath();
     for (let d = -rh * view.k; d < rw * view.k; d += 6) { ctx.moveTo(sx(0) + d, sy(0)); ctx.lineTo(sx(0) + d + rh * view.k, sy(rh)); }
     ctx.stroke(); ctx.restore();
@@ -640,9 +746,10 @@ function draw() {
   if (area.w > 0 && area.h > 0) {
     ctx.fillStyle = css('--area');
     ctx.shadowColor = 'rgb(0 0 0 / .10)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 3;
-    ctx.fillRect(sx(0), sy(Math.min(area.h, BED.h)), Math.min(area.w, BED.w) * view.k, Math.min(area.h, BED.h) * view.k);
+    const ar = originRect(Math.min(area.w, BED.w), Math.min(area.h, BED.h));
+    ctx.fillRect(...ar);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = ctx.shadowOffsetY = 0;
-    ctx.fillRect(sx(0), sy(Math.min(area.h, BED.h)), Math.min(area.w, BED.w) * view.k, Math.min(area.h, BED.h) * view.k);
+    ctx.fillRect(...ar);
   }
 
   const n = Math.round(moves.length * $('progress').value / 1000);
@@ -669,7 +776,7 @@ function draw() {
     }
   }
 
-  // Umriss der Grafik beim Überfahren/Ziehen, mit Position der unteren linken Ecke
+  // Umriss der Grafik beim Überfahren/Ziehen, mit Position der Ecke am Nullpunkt (Drucker unten links, AxiDraw oben links)
   if (box && (hover || grab)) {
     const x0 = sx(box.x0 + sh.x), y0 = sy(box.y0 + sh.y), x1 = sx(box.x1 + sh.x), y1 = sy(box.y1 + sh.y);
     ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
@@ -679,22 +786,24 @@ function draw() {
     ctx.fillText(`${round1(box.x0 + sh.x)} | ${round1(box.y0 + sh.y)}`, x0 + 6, y0 + 4);
   }
 
-  // Nullpunkt: Düse (Kreis) und Stift (Fadenkreuz), verbunden durch den Versatz
+  // Nullpunkt: Düse (Kreis) und Stift (Fadenkreuz), verbunden durch den Versatz; das AxiDraw hat nur den Stift
   const head = css('--head');
   const nx = sx(ox), ny = sy(oy), px = sx(0), py = sy(0);
   ctx.strokeStyle = head; ctx.fillStyle = head; ctx.lineWidth = 1.5;
-  ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
-  ctx.beginPath(); ctx.arc(nx, ny, 7, 0, 7); ctx.stroke();
-  ctx.beginPath(); ctx.arc(nx, ny, 2, 0, 7); ctx.fill();
+  if (!ax) {
+    ctx.setLineDash([4, 3]); ctx.beginPath(); ctx.moveTo(nx, ny); ctx.lineTo(px, py); ctx.stroke(); ctx.setLineDash([]);
+    ctx.beginPath(); ctx.arc(nx, ny, 7, 0, 7); ctx.stroke();
+    ctx.beginPath(); ctx.arc(nx, ny, 2, 0, 7); ctx.fill();
+  }
   ctx.beginPath();
   ctx.moveTo(px - 12, py); ctx.lineTo(px + 12, py); ctx.moveTo(px, py - 12); ctx.lineTo(px, py + 12);
   ctx.stroke();
   ctx.beginPath(); ctx.arc(px, py, 5, 0, 7); ctx.stroke();
   ctx.font = "600 11px 'JetBrains Mono', monospace"; ctx.textAlign = 'left'; ctx.textBaseline = 'bottom';
   const fmt = (v) => Math.round(v * 10) / 10;
-  ctx.fillText(t('canvas.nozzle', { x: fmt(ox), y: fmt(oy) }), nx + 10, ny - 6);
-  ctx.textBaseline = 'bottom';
-  ctx.fillText(t('canvas.pen'), px + 14, py - 4);
+  if (!ax) ctx.fillText(t('canvas.nozzle', { x: fmt(ox), y: fmt(oy) }), nx + 10, ny - 6);
+  ctx.textBaseline = ax ? 'top' : 'bottom';
+  ctx.fillText(t('canvas.pen'), px + 14, py + (ax ? 4 : -4));
 }
 
 // Zoom & Pan
@@ -711,8 +820,9 @@ function overGraphic(e) {
   if (!box || !view) return false;
   const r = canvas.getBoundingClientRect(), sh = shift(), tol = 6;
   const mx = e.clientX - r.left, my = e.clientY - r.top;
+  const ya = sy(box.y0 + sh.y), yb = sy(box.y1 + sh.y);
   return mx >= sx(box.x0 + sh.x) - tol && mx <= sx(box.x1 + sh.x) + tol &&
-         my >= sy(box.y1 + sh.y) - tol && my <= sy(box.y0 + sh.y) + tol;
+         my >= Math.min(ya, yb) - tol && my <= Math.max(ya, yb) + tol;
 }
 canvas.onpointerdown = (e) => {
   canvas.setPointerCapture(e.pointerId);
@@ -731,7 +841,7 @@ canvas.onpointerdown = (e) => {
 canvas.onpointermove = (e) => {
   if (grab) {
     writeForm({ pos_x: round1(grab.px + (e.clientX - grab.x) / view.k),
-                pos_y: round1(grab.py - (e.clientY - grab.y) / view.k) });
+                pos_y: round1(grab.py + (isAxidraw() ? 1 : -1) * (e.clientY - grab.y) / view.k) });
     draw(); return;
   }
   if (drag) {
@@ -752,11 +862,11 @@ new ResizeObserver(() => { fitView(); draw(); }).observe($('stage'));
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', draw);
 
 $('legend').innerHTML = `
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="var(--head)"/></svg><span data-i18n="legend.nozzle"></span></span>
+  <span data-machine="printer"><svg width="16" height="16" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6" fill="none" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="1.8" fill="var(--head)"/></svg><span data-i18n="legend.nozzle"></span></span>
   <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M0 8H16M8 0V16" stroke="var(--head)" stroke-width="1.5"/><circle cx="8" cy="8" r="4" fill="none" stroke="var(--head)" stroke-width="1.5"/></svg><span data-i18n="legend.pen"></span></span>
   <span><svg width="16" height="16" viewBox="0 0 16 16"><path d="M1 8H15" stroke="var(--travel)" stroke-dasharray="3 3"/></svg><span data-i18n="legend.travel"></span></span>
   <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--area)" stroke="var(--line)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--safety)"/></svg><span data-i18n="legend.safety"></span></span>
-  <span><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg><span data-i18n="legend.unreachable"></span></span>
+  <span data-machine="printer"><svg width="16" height="16" viewBox="0 0 16 16"><rect width="16" height="16" rx="2" fill="var(--bed)"/><path d="M0 16L16 0M-4 8L8-4M8 20L20 8" stroke="var(--hatch)"/></svg><span data-i18n="legend.unreachable"></span></span>
   <span id="bedLegend"></span>`;
 
 // ---------- Generatives Logo ----------
@@ -788,14 +898,17 @@ $('mark').onclick = drawMark;
 drawMark();
 
 // ---------- Download ----------
-$('download').onclick = () => {
-  if (!result) return;
-  const name = (svgFile?.name || 'plot.svg').replace(/\.svg$/i, '') + '.gcode';
+function downloadBlob(blob, name) {
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([result.gcode], { type: 'text/plain' }));
+  a.href = URL.createObjectURL(blob);
   a.download = name; a.click();
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('download').onclick = () => {
+  if (!result) return;
+  downloadBlob(new Blob([result.gcode], { type: 'text/plain' }), (svgFile?.name || 'plot.svg').replace(/\.svg$/i, '') + '.gcode');
 };
+$('downloadSvg').onclick = () => svgFile && downloadBlob(svgFile, svgFile.name);
 
 // ---------- Sprache ----------
 for (const [code, name] of Object.entries(LANGS)) $('lang').add(new Option(name, code));
@@ -816,9 +929,10 @@ applyI18n();
 // ---------- Start ----------
 (async () => {
   const data = await (await api('/api/defaults')).json();
-  DEFAULTS = data.defaults;
+  DEFAULTS = data.defaults; MODELS = data.axidraw_models;
+  MODELS.forEach((m, i) => $('axidrawModel').add(new Option(`${m.name} (${m.w} × ${m.h} mm)`, i)));
   writeForm({ ...DEFAULTS, ...load() });
-  syncMargin(); showDerived(); fitView();
+  syncMargin(); syncTrace(); syncMachine(); showDerived(); fitView();
   const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   await Promise.all([printerPresets.reload(stored('plotter-preset')), penPresets.reload(stored('uplot-pen'))]);
   for (const name of data.examples) $('example').add(new Option(name, name));

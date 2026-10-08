@@ -17,7 +17,7 @@ ADD $EXAMPLES/waves/waves.svg $EXAMPLES/flower/flower.svg $EXAMPLES/city/city.sv
     $EXAMPLES/calibration/calibration.svg $EXAMPLES/calibration/pen-width.svg examples/
 RUN chmod 755 examples && chmod 644 examples/*
 
-COPY app.py .
+COPY app.py raster.py ./
 COPY static static
 
 RUN useradd --uid 1000 --create-home uplot && mkdir /data && chown uplot /data

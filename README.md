@@ -70,6 +70,13 @@ Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neb
 
 - SVG hineinziehen, Vorschau auf dem Druckbett prüfen und G-Code herunterladen. Den G-Code druckst du von SD-Karte
   oder schickst ihn mit einem Programm deiner Wahl (z. B. OctoPrint, Pronterface) per USB an den Drucker.
+- PNG und JPG: werden beim Hochladen in ein SVG umgewandelt und auf die plotbare Fläche eingepasst.
+  „Schraffur“ setzt Graustufen in parallele Linien um, dunkle Stellen bekommen weitere Lagen in anderen Winkeln
+  (für Fotos; Linienabstand und Anzahl der Graustufen einstellbar). „Umriss“ zeichnet mit
+  [potrace](https://pypi.org/project/potracer/) die Konturen der Flächen nach, die dunkler als die Schwelle sind
+  (für Logos und Strichzeichnungen). Schrift und andere schmale, langgestreckte Striche (bis „Mittellinie bis“,
+  Standard 10 mm Strichstärke) werden dabei nicht umrandet, sondern als ein Pfad durch die Mitte gezeichnet.
+  Das erzeugte SVG lässt sich herunterladen.
 - Vorschau im Maßstab des Druckbetts, Nullpunkt unten links. Düse (Kreis) und Stift (Fadenkreuz) im Nullpunkt,
   nicht erreichbare Bereiche grau, Sicherheitsabstand pink schraffiert, Leerfahrten und Plot-Fortschritt zum Scrubben.
 - Layout: „An Plotfläche anpassen“ skaliert proportional, „Zentrieren“ richtet mittig aus, freier Drehwinkel,
@@ -81,7 +88,12 @@ Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neb
   die Felder. Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts.
   Plotbare Fläche = Bett − Nullpunkt − Sicherheitsabstand. Anleitung zum Ermitteln der Werte:
   [docs/calibrating.md](https://github.com/brianlow/plotter/blob/main/docs/calibrating.md) im Originalrepo.
-- Drucker-Profile: Kalibrierung und Geschwindigkeiten als Profil speichern. „Prusa MK3S+“ ist das Standardprofil;
+- AxiDraw-Modus (Maschinentyp „AxiDraw / NextDraw“): G-Code für [µprint](https://github.com/dmyrenne/uprint), das
+  ihn an ein AxiDraw oder NextDraw weitergibt. Zeichenfläche frei oder per Modellvorlage (Maße aus den
+  Herstellerangaben), Nullpunkt oben links an der Stiftposition beim Einschalten, kein Düsen-Versatz, kein Umklappen
+  in Y. Die Datei beginnt mit `; uplot-axidraw 1`, Z0 = Stift unten, Z1 = Stift oben (die Höhen stellt µprint ein),
+  keine Referenzfahrt, am Ende zurück auf X0 Y0.
+- Geräte-Profile: Maschinentyp, Kalibrierung und Geschwindigkeiten als Profil speichern. „Prusa MK3S+“ ist das Standardprofil;
   es lässt sich überschreiben und mit „Zurücksetzen“ wiederherstellen. Profile speichert der Server (siehe
   Installation), die übrigen Einstellungen der Browser.
 - Stift-Profile: Farbe und Strichbreite des Stifts einstellen und als eigenes Profil speichern, z. B. „Gelstift rot 0,5“.
