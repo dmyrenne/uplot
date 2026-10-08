@@ -80,13 +80,17 @@ Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neb
 - Vorschau im Maßstab des Druckbetts, Nullpunkt unten links. Düse (Kreis) und Stift (Fadenkreuz) im Nullpunkt,
   nicht erreichbare Bereiche grau, Sicherheitsabstand pink schraffiert, Leerfahrten und Plot-Fortschritt zum Scrubben.
 - Layout: „An Plotfläche anpassen“ skaliert proportional, „Zentrieren“ richtet mittig aus, freier Drehwinkel,
-  X/Y spiegeln. Position X/Y ist die untere linke Ecke der Grafik auf dem Bett; die Grafik lässt sich in der
-  Vorschau mit der Maus verschieben.
+  X/Y spiegeln. Position X/Y ist die Ecke der Grafik am Nullpunkt (unten links, beim AxiDraw oben links), gemessen
+  ab der Ecke der plotbaren Fläche; die Grafik lässt sich in der Vorschau mit der Maus verschieben. Breite/Höhe
+  setzen die Größe (leer = Originalgröße), wahlweise mit beibehaltenen Proportionen (Standard) oder frei; skalieren
+  geht auch an den Anfassern in der Vorschau. Beim Verschieben und Skalieren bleibt die Grafik immer innerhalb der
+  plotbaren Fläche, eingetippte Positionen außerhalb springen zurück.
 - Optimierung: Linien sortieren und zusammenfügen, vereinfachen, kurze Linien entfernen. Alle Ebenen des SVG werden
   zusammengeführt und mit einem Stift gezeichnet.
 - Kalibrierung: Bettgröße, Düse im Nullpunkt, Sicherheitsabstand, Z-Höhen und Parkposition; die (i)-Symbole erklären
   die Felder. Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts.
-  Plotbare Fläche = Bett − Nullpunkt − Sicherheitsabstand. Anleitung zum Ermitteln der Werte:
+  Plotbare Fläche = Bett − Nullpunkt − Sicherheitsabstände. Der Sicherheitsabstand gilt wie in Figma entweder auf
+  allen vier Seiten gleich oder, über den Schalter daneben, je Seite (oben/rechts/unten/links wie in der Vorschau). Anleitung zum Ermitteln der Werte:
   [docs/calibrating.md](https://github.com/brianlow/plotter/blob/main/docs/calibrating.md) im Originalrepo.
 - AxiDraw-Modus (Maschinentyp „AxiDraw / NextDraw“): G-Code für [µprint](https://github.com/dmyrenne/uprint), das
   ihn an ein AxiDraw oder NextDraw weitergibt. Zeichenfläche frei oder per Modellvorlage (Maße aus den

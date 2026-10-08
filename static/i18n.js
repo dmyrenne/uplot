@@ -33,7 +33,12 @@ const I18N = {
     'center': 'Zentrieren',
     'pos_x': 'Position X (mm)',
     'pos_y': 'Position Y (mm)',
-    'tip.pos': 'Ecke der Grafik am Nullpunkt 0|0 (beim Drucker unten links, beim AxiDraw oben links). Du kannst die Grafik auch in der Vorschau mit der Maus verschieben; das schaltet „Zentrieren“ aus.',
+    'tip.pos': 'Ecke der Grafik am Nullpunkt (beim Drucker unten links, beim AxiDraw oben links), gemessen ab der Ecke der plotbaren Fläche, also innerhalb des Sicherheitsabstands. Du kannst die Grafik auch in der Vorschau mit der Maus verschieben; das schaltet „Zentrieren“ aus. Sie springt immer in die plotbare Fläche zurück.',
+    'width': 'Breite (mm)',
+    'height': 'Höhe (mm)',
+    'tip.size': 'Größe der Grafik. Leer = Originalgröße (steht grau im Feld). Lässt sich auch in der Vorschau an den Anfassern ziehen; das schaltet „An Plotfläche anpassen“ aus. Die Grafik bleibt dabei immer in der plotbaren Fläche.',
+    'keep_ratio': 'Proportionen beibehalten',
+    'resetSize': 'Originalgröße',
     'angle': 'Drehen (°, im Uhrzeigersinn)',
     'mirror_x': 'X spiegeln',
     'mirror_y': 'Y spiegeln',
@@ -97,8 +102,13 @@ const I18N = {
     'offset_x': 'Düse im Nullpunkt X',
     'offset_y': 'Düse im Nullpunkt Y',
     'tip.offset': 'Druckerkoordinate der Düse, wenn der Stift genau auf der unteren linken Ecke des Betts (0|0) steht. Ermitteln: am Drucker über Settings → Move Axis den Stift auf die Ecke fahren und X/Y ablesen.',
-    'safety': 'Sicherheitsabstand',
-    'tip.safety': 'Abstand in mm. Wird rechts und hinten vom erreichbaren Bereich abgezogen, damit die Achsen nicht bis an den Anschlag fahren. In der Vorschau pink schraffiert.',
+    'safety': 'Sicherheitsabstand (mm)',
+    'tip.safety': 'Wird auf allen Seiten vom erreichbaren Bereich abgezogen, damit die Achsen nicht bis an den Anschlag fahren und der Stift nicht über den Papierrand malt. Mit dem Schalter rechts lässt sich jede Seite einzeln einstellen; oben und unten gelten wie in der Vorschau. In der Vorschau pink schraffiert.',
+    'safety_split': 'Abstand je Seite',
+    'safety_top': 'Abstand oben',
+    'safety_right': 'Abstand rechts',
+    'safety_bottom': 'Abstand unten',
+    'safety_left': 'Abstand links',
     'area.html': 'Plotbare Fläche: <b>{w} × {h} mm</b>',
     'area.empty': 'Die Fläche ist leer. Nullpunkt und Sicherheitsabstand prüfen.',
     'z_down': 'Z Stift unten',
@@ -177,7 +187,12 @@ const I18N = {
     'center': 'Center',
     'pos_x': 'Position X (mm)',
     'pos_y': 'Position Y (mm)',
-    'tip.pos': 'Corner of the artwork at the origin 0|0 (lower left on a printer, upper left on an AxiDraw). You can also drag the artwork in the preview; this turns off “Center”.',
+    'tip.pos': 'Corner of the artwork at the origin (lower left on a printer, upper left on an AxiDraw), measured from the corner of the plot area, i.e. inside the safety margin. You can also drag the artwork in the preview; this turns off “Center”. It always snaps back into the plot area.',
+    'width': 'Width (mm)',
+    'height': 'Height (mm)',
+    'tip.size': 'Size of the artwork. Empty = original size (shown in grey). You can also drag the handles in the preview; this turns off “Fit to plot area”. The artwork always stays inside the plot area.',
+    'keep_ratio': 'Keep proportions',
+    'resetSize': 'Original size',
     'angle': 'Rotate (°, clockwise)',
     'mirror_x': 'Mirror X',
     'mirror_y': 'Mirror Y',
@@ -241,8 +256,13 @@ const I18N = {
     'offset_x': 'Nozzle at origin X',
     'offset_y': 'Nozzle at origin Y',
     'tip.offset': 'Printer coordinate of the nozzle when the pen sits exactly on the lower left corner of the bed (0|0). To find it, use Settings → Move Axis on the printer to move the pen onto the corner and read off X/Y.',
-    'safety': 'Safety margin',
-    'tip.safety': 'Distance in mm, subtracted from the right and back of the reachable area so the axes don’t run into their end stops. Hatched pink in the preview.',
+    'safety': 'Safety margin (mm)',
+    'tip.safety': 'Subtracted from the reachable area on all sides, so the axes don’t run into their end stops and the pen stays off the paper edge. Use the toggle on the right to set each side separately; top and bottom are as shown in the preview. Hatched pink in the preview.',
+    'safety_split': 'Margin per side',
+    'safety_top': 'Top margin',
+    'safety_right': 'Right margin',
+    'safety_bottom': 'Bottom margin',
+    'safety_left': 'Left margin',
     'area.html': 'Plot area: <b>{w} × {h} mm</b>',
     'area.empty': 'The area is empty. Check the origin and safety margin.',
     'z_down': 'Z pen down',
@@ -307,7 +327,7 @@ function t(key, vars = {}) {
   return s.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? vars[k] : m));
 }
 
-// Statische Texte: data-i18n (Text), data-i18n-html, data-i18n-tip, data-i18n-placeholder, data-i18n-aria
+// Statische Texte: data-i18n (Text), data-i18n-html, data-i18n-tip, data-i18n-placeholder, data-i18n-aria, data-i18n-title
 function applyI18n(root = document) {
   document.documentElement.lang = LANG;
   for (const el of root.querySelectorAll('[data-i18n]')) el.textContent = t(el.dataset.i18n);
@@ -315,4 +335,5 @@ function applyI18n(root = document) {
   for (const el of root.querySelectorAll('[data-i18n-tip]')) el.dataset.tip = t(el.dataset.i18nTip);
   for (const el of root.querySelectorAll('[data-i18n-placeholder]')) el.placeholder = t(el.dataset.i18nPlaceholder);
   for (const el of root.querySelectorAll('[data-i18n-aria]')) el.setAttribute('aria-label', t(el.dataset.i18nAria));
+  for (const el of root.querySelectorAll('[data-i18n-title]')) el.title = t(el.dataset.i18nTitle);
 }

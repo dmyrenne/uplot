@@ -54,7 +54,12 @@ DEFAULTS = {
     "offset_y": 38.0,       # linken Ecke des Betts (0|0) steht (translate in plot.sh)
     "bed_w": 250.0,         # Druckbett MK3S+
     "bed_h": 210.0,
-    "safety": 2.0,          # Abstand zum rechten/hinteren Rand des erreichbaren Bereichs
+    "safety": 2.0,          # Abstand zum Rand des erreichbaren Bereichs, auf allen vier Seiten gleich ...
+    "safety_split": False,  # ... oder je Seite (oben/rechts/unten/links, wie in der Vorschau zu sehen)
+    "safety_top": 2.0,
+    "safety_right": 2.0,
+    "safety_bottom": 2.0,
+    "safety_left": 2.0,
     "z_down": 7.0,
     "z_up": 10.0,
     "z_travel": 30.0,
@@ -71,6 +76,9 @@ DEFAULTS = {
     "pos_y": 0.0,           # gilt, wenn nicht zentriert wird
     "margin": 0.0,
     "angle": 0.0,           # Drehung in Grad, im Uhrzeigersinn
+    "width": 0.0,           # Größe der Grafik in mm (nach dem Drehen), 0 = Originalgröße;
+    "height": 0.0,          # gilt nur ohne "fit"
+    "keep_ratio": True,     # Proportionen beibehalten: in width × height einpassen statt verzerren
     "merge_layers": True,   # in der Oberfläche ausgeblendet, bis es Stifte pro Ebene gibt
     "linemerge_tol": 0.05,
     "simplify_tol": 0.0,
@@ -200,19 +208,32 @@ def parse_settings(form):
                 raise ValueError(msg("invalid_value", key=key, raw=raw))
     if s["machine"] == "axidraw":
         s |= AXIDRAW_FIXED
-    s["area_w"], s["area_h"] = plot_area(s)
+    s["area_w"], s["area_h"], s["area_x"], s["area_y"] = plot_area(s)
     if s["area_w"] <= 0 or s["area_h"] <= 0:
         raise ValueError(msg("empty_area"))
     return s
 
 
+def margins(s):
+    """Sicherheitsabstände in Stiftkoordinaten: (x am Nullpunkt, x gegenüber, y am Nullpunkt, y gegenüber).
+    Oben/unten meint die Vorschau: Beim Drucker liegt der Nullpunkt unten, beim AxiDraw oben."""
+    if s["safety_split"]:
+        top, right, bottom, left = (s[f"safety_{k}"] for k in ("top", "right", "bottom", "left"))
+    else:
+        top = right = bottom = left = s["safety"]
+    if s["machine"] == "axidraw":
+        return left, right, top, bottom
+    return left, right, bottom, top
+
+
 def plot_area(s):
     """Plotbare Fläche: Der Stift steht bei Düse im Nullpunkt auf 0|0 des Betts. Weil er um den
     Nullpunkt versetzt zur Düse sitzt, erreicht er rechts/hinten entsprechend weniger vom Bett;
-    davon geht noch der Sicherheitsabstand ab. Beim AxiDraw ist der Versatz 0, die Fläche ist dann
-    direkt die Zeichenfläche."""
-    return (round(s["bed_w"] - s["offset_x"] - s["safety"], 3),
-            round(s["bed_h"] - s["offset_y"] - s["safety"], 3))
+    davon gehen auf allen Seiten die Sicherheitsabstände ab. Beim AxiDraw ist der Versatz 0, die Fläche
+    ist dann direkt die Zeichenfläche. Liefert Breite, Höhe und die Ecke am Nullpunkt (Stiftkoordinaten)."""
+    x0, x1, y0, y1 = margins(s)
+    return (round(s["bed_w"] - s["offset_x"] - x0 - x1, 3), round(s["bed_h"] - s["offset_y"] - y0 - y1, 3),
+            x0, y0)
 
 
 def build_pipeline(s, svg_path, gcode_path):
@@ -225,6 +246,8 @@ def build_pipeline(s, svg_path, gcode_path):
         cmd += ["scale", "--", "-1" if s["mirror_x"] else "1", "-1" if s["mirror_y"] else "1"]
     if s["angle"] % 360:
         cmd += ["rotate", f"{s['angle'] % 360:g}"]
+    if not s["fit"] and s["width"] > 0 and s["height"] > 0:
+        cmd += ["scaleto"] + ([] if s["keep_ratio"] else ["--fit-dimensions"]) + [f"{s['width']}mm", f"{s['height']}mm"]
     page = [f"{s['area_w']}x{s['area_h']}mm"]
     if s["area_w"] > s["area_h"]:
         page = ["--landscape"] + page
@@ -239,7 +262,8 @@ def build_pipeline(s, svg_path, gcode_path):
     if not axidraw:
         # SVG hat y nach unten, der Drucker y nach oben -> an der Flächenmitte umklappen
         cmd += ["scale", "--origin", "0", f"{s['area_h'] / 2}mm", "--", "1", "-1"]
-    dx, dy = s["offset_x"], s["offset_y"]
+    # auf die Ecke der plotbaren Fläche legen; die Position zählt ab dieser Ecke
+    dx, dy = s["offset_x"] + s["area_x"], s["offset_y"] + s["area_y"]
     if not s["center"]:
         dx, dy = dx + s["pos_x"], dy + s["pos_y"]
     cmd += ["translate", f"{dx:g}mm", f"{dy:g}mm"]
@@ -275,15 +299,16 @@ def defaults():
 # Drucker-Profile enthalten nur die maschinenbezogenen Werte (Kalibrierung + Geschwindigkeiten),
 # nicht Layout/Optimierung, die zur jeweiligen Zeichnung gehören. Stift-Profile enthalten Farbe und
 # Strichbreite; sie wirken nur auf die Vorschau.
-MACHINE_KEYS = ["machine", "bed_w", "bed_h", "offset_x", "offset_y", "safety", "z_down", "z_up", "z_travel",
+MACHINE_KEYS = ["machine", "bed_w", "bed_h", "offset_x", "offset_y", "safety", "safety_split", "safety_top",
+                "safety_right", "safety_bottom", "safety_left", "z_down", "z_up", "z_travel",
                 "park_x", "park_y", "feed_draw", "feed_travel", "feed_z"]
 PEN_DEFAULTS = {"pen_color": "#1d1d1b", "pen_width": 0.4}
 COLOR = re.compile(r"#[0-9a-f]{6}")
 
 
 def clean_printer(data):
-    out = {k: float(data[k]) for k in MACHINE_KEYS if k != "machine"}
-    return {"machine": clean_machine(data.get("machine"))} | out
+    out = {k: float(data[k]) for k in MACHINE_KEYS if k not in ("machine", "safety_split")}
+    return {"machine": clean_machine(data.get("machine")), "safety_split": data.get("safety_split") is True} | out
 
 
 def clean_pen(data):

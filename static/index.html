@@ -95,6 +95,19 @@
   .badge { font: 500 10px var(--mono); text-transform: uppercase; letter-spacing: .04em; padding: 3px 8px; border-radius: 99px;
            background: var(--warn-bg); color: var(--warn); white-space: nowrap; }
   .saveas input { flex: 1; min-width: 0; }
+  /* Sicherheitsabstand wie in Figma: ein Wert für alle Seiten oder vier einzelne */
+  .safety { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+  .safety-row { display: flex; gap: 6px; align-items: center; }
+  .safety-row > input, .safety-row > .side { flex: 1; min-width: 0; }
+  .safety-row .side { position: relative; }
+  .safety-row .side svg { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); pointer-events: none; }
+  .safety-row .side input { padding-left: 24px; }
+  .side-toggle { flex: none; display: grid; place-items: center; width: 32px; height: 30px; border: 1px solid var(--line-strong);
+                 border-radius: 6px; cursor: pointer; color: var(--muted); background: var(--field); }
+  .side-toggle:hover { border-color: var(--ink); color: var(--ink); }
+  .side-toggle:has(input:checked) { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .side-toggle:has(input:focus-visible) { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
+  .vh { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
   .swatch { width: 12px; height: 12px; border-radius: 50%; flex: none; }
 
   /* ---------- Arbeitsfläche ---------- */
@@ -111,6 +124,9 @@
   .empty { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); pointer-events: none; }
   .bottom { padding: 12px 20px; border-top: 1px solid var(--line); background: var(--panel); display: grid; gap: 10px; }
   input[type=range] { width: 100%; accent-color: var(--accent); }
+  /* Status („Berechne …“) über der Vorschau, damit sich die Höhe der Vorschau nicht ändert */
+  .status { position: absolute; top: 12px; right: 14px; padding: 4px 10px; border-radius: 99px; font-size: 12px;
+            background: var(--panel); color: var(--muted); border: 1px solid var(--line); pointer-events: none; }
   .msg { padding: 8px 11px; border-radius: 6px; background: var(--warn-bg); color: var(--warn); white-space: pre-wrap; font-size: 13px; }
   .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: var(--muted); align-items: center; }
   .legend svg { vertical-align: -3px; margin-right: 6px; }
@@ -164,6 +180,10 @@
       <label class="check"><input type="checkbox" name="center"> <span data-i18n="center"></span></label>
       <label><span class="lt"><span data-i18n="pos_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.pos">i</span></span><input type="number" name="pos_x" step="0.5"></label>
       <label><span class="lt"><span data-i18n="pos_y"></span></span><input type="number" name="pos_y" step="0.5"></label>
+      <label><span class="lt"><span data-i18n="width"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.size">i</span></span><input type="number" name="width" step="0.5" min="0"></label>
+      <label><span class="lt"><span data-i18n="height"></span></span><input type="number" name="height" step="0.5" min="0"></label>
+      <label class="check" style="grid-column:auto"><input type="checkbox" name="keep_ratio"> <span data-i18n="keep_ratio"></span></label>
+      <button type="button" id="resetSize" data-i18n="resetSize" style="justify-self:start"></button>
       <label><span class="lt"><span data-i18n="angle"></span></span><input type="number" name="angle" step="1" min="0" max="360"></label>
       <span></span>
       <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_x"> <span data-i18n="mirror_x"></span></label>
@@ -207,7 +227,18 @@
         <label><span class="lt"><span data-i18n="bed_h" data-i18n-axidraw="area_h"></span></span><input type="number" name="bed_h" step="1" min="1"></label>
         <label data-machine="printer"><span class="lt"><span data-i18n="offset_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.offset">i</span></span><input type="number" name="offset_x" step="0.1"></label>
         <label data-machine="printer"><span class="lt"><span data-i18n="offset_y"></span></span><input type="number" name="offset_y" step="0.1"></label>
-        <label><span class="lt"><span data-i18n="safety"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.safety">i</span></span><input type="number" name="safety" step="0.5" min="0"></label>
+        <div class="safety">
+          <span class="lt"><span data-i18n="safety"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.safety">i</span></span>
+          <div class="safety-row">
+            <input type="number" name="safety" step="0.5" min="0" data-split="0" data-i18n-aria="safety">
+            <label class="side" data-split="1"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 1.5"/><path d="M1.5 1H10.5" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg><input type="number" name="safety_top" step="0.5" min="0" data-i18n-aria="safety_top"></label>
+            <label class="side" data-split="1"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 1.5"/><path d="M11 1.5V10.5" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg><input type="number" name="safety_right" step="0.5" min="0" data-i18n-aria="safety_right"></label>
+            <label class="side" data-split="1"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 1.5"/><path d="M1.5 11H10.5" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg><input type="number" name="safety_bottom" step="0.5" min="0" data-i18n-aria="safety_bottom"></label>
+            <label class="side" data-split="1"><svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><rect x="1" y="1" width="10" height="10" rx="1.5" fill="none" stroke="var(--line-strong)" stroke-dasharray="2 1.5"/><path d="M1 1.5V10.5" stroke="var(--accent)" stroke-width="2" stroke-linecap="round"/></svg><input type="number" name="safety_left" step="0.5" min="0" data-i18n-aria="safety_left"></label>
+            <label class="side-toggle" data-i18n-title="safety_split"><input type="checkbox" name="safety_split" class="vh" data-i18n-aria="safety_split">
+              <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M3 1H11M13 3V11M3 13H11M1 3V11"/></svg></label>
+          </div>
+        </div>
         <div class="derived" id="derived"></div>
         <label data-machine="printer"><span class="lt"><span data-i18n="z_down"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_down">i</span></span><input type="number" name="z_down" step="0.1"></label>
         <label data-machine="printer"><span class="lt"><span data-i18n="z_up"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.z_up">i</span></span><input type="number" name="z_up" step="0.1"></label>
@@ -242,6 +273,7 @@
   <div class="stage" id="stage">
     <canvas id="canvas"></canvas>
     <div class="empty" id="empty" data-i18n="empty"></div>
+    <div class="status" id="status" hidden></div>
   </div>
   <div class="bottom">
     <div id="messages"></div>
@@ -290,6 +322,7 @@ function setFile(file) {
   // PNG/JPG wandelt der Server erst in ein SVG um (raster.py), danach geht es weiter wie mit einem SVG
   imageFile = isImage(file) ? file : null;
   $('traceBox').hidden = !imageFile;
+  writeForm({ width: '', height: '' }); box = null; save();   // neue Grafik beginnt in Originalgröße
   if (imageFile) { svgFile = null; trace(); } else { svgFile = file; convert(); }
 }
 $('drop').onclick = () => $('file').click();
@@ -351,11 +384,28 @@ form.addEventListener('input', (e) => { if (e.target.name === 'bed_w' || e.targe
 // ---------- Plotbare Fläche ----------
 // Der Stift steht bei Düse im Nullpunkt immer auf 0|0 des Betts, der Versatz Stift→Düse ist also
 // genau der Nullpunkt. Gleiche Formel wie plot_area() in app.py.
+// Sicherheitsabstände oben/rechts/unten/links beziehen sich auf die Vorschau; beim Drucker liegt der
+// Nullpunkt unten, beim AxiDraw oben. x0/y0 ist die Ecke der plotbaren Fläche am Nullpunkt.
 function plotArea(s) {
   s = effective(s);
   const reachW = +s.bed_w - +s.offset_x, reachH = +s.bed_h - +s.offset_y;   // vom Stift erreichbar
-  return { reachW, reachH, w: reachW - +s.safety, h: reachH - +s.safety };
+  const m = (k) => +(s.safety_split ? s['safety_' + k] : s.safety) || 0;
+  const ax = s.machine === 'axidraw';
+  const x0 = m('left'), x1 = m('right'), y0 = m(ax ? 'top' : 'bottom'), y1 = m(ax ? 'bottom' : 'top');
+  return { reachW, reachH, x0, y0, w: reachW - x0 - x1, h: reachH - y0 - y1 };
 }
+const areaOrigin = () => { const a = plotArea(readForm()); return { x: a.x0, y: a.y0 }; };
+// Getrennte Abstände: beim Einschalten alle mit dem gemeinsamen Wert vorbelegen
+const syncSafety = () => {
+  for (const el of document.querySelectorAll('[data-split]')) el.hidden = el.dataset.split !== (form.elements.safety_split.checked ? '1' : '0');
+};
+form.elements.safety_split.addEventListener('change', () => {
+  if (form.elements.safety_split.checked) {
+    const v = form.elements.safety.value;
+    writeForm({ safety_top: v, safety_right: v, safety_bottom: v, safety_left: v });
+  }
+  syncSafety();
+});
 function showDerived() {
   const s = readForm(), a = plotArea(s), f1 = (v) => (Math.round(v * 10) / 10).toLocaleString(LANG);
   const w = +s.bed_w || 250, h = +s.bed_h || 210;
@@ -388,8 +438,24 @@ for (const el of document.querySelectorAll('.info')) {
 const syncMargin = () => {
   form.elements.margin.disabled = !form.elements.fit.checked;
   form.elements.pos_x.disabled = form.elements.pos_y.disabled = form.elements.center.checked;
+  // Größe gilt nur ohne Einpassen; die aktuelle Größe steht als Platzhalter in leeren Feldern
+  form.elements.width.disabled = form.elements.height.disabled = form.elements.fit.checked;
+  form.elements.width.placeholder = box ? round1(box.x1 - box.x0) : '';
+  form.elements.height.placeholder = box ? round1(box.y1 - box.y0) : '';
 };
 form.addEventListener('change', syncMargin);
+// Breite/Höhe: das andere Feld mitführen, proportional oder (frei) mit der aktuellen Größe vorbelegen
+for (const [k, other] of [['width', 'height'], ['height', 'width']]) {
+  form.elements[k].addEventListener('input', () => {
+    if (!box) return;
+    const v = +form.elements[k].value, bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+    if (!(v > 0)) { writeForm({ [other]: '' }); return; }
+    const ratio = k === 'width' ? bh / bw : bw / bh;
+    if (form.elements.keep_ratio.checked && isFinite(ratio)) writeForm({ [other]: round1(v * ratio) });
+    else if (!(+form.elements[other].value > 0)) writeForm({ [other]: round1(k === 'width' ? bh : bw) });
+  });
+}
+$('resetSize').onclick = () => { writeForm({ width: '', height: '' }); save(); convert(); };
 
 // ---------- Konvertieren ----------
 let timer = null, seq = 0;
@@ -466,10 +532,10 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
   let list = [], keys = [], builtin = null, last = null;
   const byName = (n) => list.find((p) => p.name === n);
   const current = () => byName(sel.value);
-  // Zahlen als Zahl vergleichen, Texte (Farbe) als Kleinbuchstaben
+  // Zahlen als Zahl vergleichen, Schalter als true/false, Texte (Farbe) als Kleinbuchstaben
   const values = () => {
-    const f = readForm();
-    return Object.fromEntries(keys.map((k) => [k, typeof byName(builtin).settings[k] === 'number' ? +f[k] : String(f[k]).toLowerCase()]));
+    const f = readForm(), type = (k) => typeof byName(builtin).settings[k];
+    return Object.fromEntries(keys.map((k) => [k, type(k) === 'number' ? +f[k] : type(k) === 'boolean' ? !!f[k] : String(f[k]).toLowerCase()]));
   };
   const modified = () => {
     const p = current(), v = values();
@@ -559,7 +625,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
 }
 const printerPresets = presetManager({
   root: $('printerPresets'), url: '/api/presets', storeKey: 'plotter-preset', hint: 'preset.hint', placeholder: 'presetName',
-  onApply: () => { syncMachine(); showDerived(); fitView(); convert(); },
+  onApply: () => { syncSafety(); syncMachine(); showDerived(); fitView(); convert(); },
 });
 const penPresets = presetManager({
   root: $('penPresets'), url: '/api/pens', storeKey: 'uplot-pen', hint: 'pen.hint', placeholder: 'penName',
@@ -588,8 +654,15 @@ async function convert() {
   moves = parseGcode(data.gcode);
   box = drawBox(data.settings);
   if (box && data.settings.center) {   // zentrierte Lage übernehmen, damit Ausschalten sie beibehält
-    writeForm({ pos_x: round1(box.x0), pos_y: round1(box.y0) }); save();
+    writeForm({ pos_x: round1(box.x0 - data.settings.area_x), pos_y: round1(box.y0 - data.settings.area_y) }); save();
+  } else if (box) {
+    // Keine Anschnitte: liegt die Grafik teilweise außerhalb der plotbaren Fläche, zurück hineinschieben
+    const p = clampPos(+form.elements.pos_x.value || 0, +form.elements.pos_y.value || 0, box.x1 - box.x0, box.y1 - box.y0);
+    if (Math.abs(p.x - (+form.elements.pos_x.value || 0)) > 0.05 || Math.abs(p.y - (+form.elements.pos_y.value || 0)) > 0.05) {
+      writeForm({ pos_x: p.x, pos_y: p.y }); save(); syncMargin(); convert(); return;
+    }
   }
+  syncMargin();
   $('download').disabled = false;
   $('empty').style.display = 'none';
   renderStats();
@@ -631,11 +704,27 @@ function drawBox(s) {
   if (x0 === Infinity) return null;
   return { x0: x0 - s.offset_x, y0: y0 - s.offset_y, x1: x1 - s.offset_x, y1: y1 - s.offset_y };
 }
-// Verschiebung der Vorschau gegenüber dem letzten G-Code, solange eine neue Position noch berechnet wird
-function shift() {
-  const s = readForm();
-  if (!box || s.center) return { x: 0, y: 0 };
-  return { x: (+s.pos_x || 0) - box.x0, y: (+s.pos_y || 0) - box.y0 };
+// Position (ab Flächenecke) so begrenzen, dass eine Grafik der Größe w × h ganz in der plotbaren Fläche liegt.
+// Ist sie größer als die Fläche, bleibt sie an der Ecke; die Warnung unter der Vorschau weist darauf hin.
+function clampPos(x, y, w, h) {
+  const a = plotArea(readForm()), lim = (v, max) => Math.min(Math.max(v, 0), Math.max(0, Math.floor(max * 10) / 10));
+  return { x: round1(lim(x, a.w - w)), y: round1(lim(y, a.h - h)) };
+}
+// Wo die Grafik laut Formular liegen soll (Bettkoordinaten), solange der G-Code dazu noch berechnet wird:
+// Position und Größe aus den Feldern, umgerechnet vom letzten Ergebnis (box)
+function target() {
+  if (!box) return null;
+  const s = readForm(), bw = box.x1 - box.x0, bh = box.y1 - box.y0;
+  let w = bw, h = bh;
+  if (!s.fit && +s.width > 0 && +s.height > 0) {
+    if (s.keep_ratio) { const k = Math.min(bw ? +s.width / bw : Infinity, bh ? +s.height / bh : Infinity); w = bw * k; h = bh * k; }
+    else { w = +s.width; h = +s.height; }
+  }
+  const a = plotArea(readForm());
+  const x0 = s.center ? a.x0 + (a.w - w) / 2 : (+s.pos_x || 0) + a.x0;
+  const y0 = s.center ? a.y0 + (a.h - h) / 2 : (+s.pos_y || 0) + a.y0;
+  if (s.center && !scaling && !grab) return { x0: box.x0, y0: box.y0, x1: box.x1, y1: box.y1, kx: 1, ky: 1 };
+  return { x0, y0, x1: x0 + w, y1: y0 + h, kx: bw ? w / bw : 1, ky: bh ? h / bh : 1 };
 }
 
 function renderStats() {
@@ -657,7 +746,7 @@ function renderStats() {
 }
 
 function checkBounds(s) {
-  const minX = +s.offset_x, minY = +s.offset_y, maxX = minX + +s.area_w, maxY = minY + +s.area_h;
+  const minX = +s.offset_x + +s.area_x, minY = +s.offset_y + +s.area_y, maxX = minX + +s.area_w, maxY = minY + +s.area_h;
   let bx0 = Infinity, by0 = Infinity, bx1 = -Infinity, by1 = -Infinity;
   for (const m of moves) if (m.draw) {
     bx0 = Math.min(bx0, m.x0, m.x1); bx1 = Math.max(bx1, m.x0, m.x1);
@@ -673,9 +762,12 @@ function checkBounds(s) {
   return out;
 }
 
+// Hinweise (neutral, z. B. „Berechne …“) erscheinen über der Vorschau und lassen die Warnungen stehen;
+// Warnungen unter der Vorschau ersetzen den Hinweis. So springt die Vorschau nicht bei jeder Berechnung.
 function showMessages(list, neutral) {
-  $('messages').innerHTML = list.map((m) =>
-    `<div class="msg"${neutral ? ' style="background:transparent;color:var(--muted);padding:0"' : ''}></div>`).join('');
+  $('status').hidden = !neutral;
+  if (neutral) { $('status').textContent = list.join(' '); return; }
+  $('messages').innerHTML = list.map(() => '<div class="msg"></div>').join('');
   [...$('messages').children].forEach((el, i) => el.textContent = list[i]);
 }
 
@@ -693,7 +785,8 @@ function fitView() {
 const sx = (x) => view.ox + x * view.k;
 const sy = (y) => view.oy + (isAxidraw() ? y : BED.h - y) * view.k;
 // Rechteck vom Nullpunkt bis w × h, unabhängig von der y-Richtung
-const originRect = (w, h) => [sx(0), Math.min(sy(0), sy(h)), w * view.k, h * view.k];
+const bedRect = (x, y, w, h) => [sx(x), Math.min(sy(y), sy(y + h)), w * view.k, h * view.k];
+const originRect = (w, h) => bedRect(0, 0, w, h);
 
 function draw() {
   const r = canvas.getBoundingClientRect(), dpr = devicePixelRatio || 1;
@@ -704,8 +797,10 @@ function draw() {
 
   const s = effective(readForm()), ax = isAxidraw();
   const ox = +s.offset_x, oy = +s.offset_y;
-  const sh = shift();
-  const dx = -ox + sh.x, dy = -oy + sh.y;   // G-Code (Düse) -> Stift auf dem Bett, plus laufende Verschiebung
+  // G-Code (Düse) -> Stift auf dem Bett, dazu die laufende Verschiebung/Skalierung aus dem Formular
+  const T = target();
+  const mx = (x) => T ? T.x0 + (x - ox - box.x0) * T.kx : x - ox;
+  const my = (y) => T ? T.y0 + (y - oy - box.y0) * T.ky : y - oy;
 
   // Druckbett
   ctx.fillStyle = css('--bed');
@@ -746,7 +841,7 @@ function draw() {
   if (area.w > 0 && area.h > 0) {
     ctx.fillStyle = css('--area');
     ctx.shadowColor = 'rgb(0 0 0 / .10)'; ctx.shadowBlur = 16; ctx.shadowOffsetY = 3;
-    const ar = originRect(Math.min(area.w, BED.w), Math.min(area.h, BED.h));
+    const ar = bedRect(area.x0, area.y0, Math.max(0, Math.min(area.w, BED.w - area.x0)), Math.max(0, Math.min(area.h, BED.h - area.y0)));
     ctx.fillRect(...ar);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = ctx.shadowOffsetY = 0;
     ctx.fillRect(...ar);
@@ -758,7 +853,7 @@ function draw() {
     for (let i = 0; i < n; i++) {
       const m = moves[i];
       if (m.len === undefined || m.draw !== isDraw) continue;
-      ctx.moveTo(sx(m.x0 + dx), sy(m.y0 + dy)); ctx.lineTo(sx(m.x1 + dx), sy(m.y1 + dy));
+      ctx.moveTo(sx(mx(m.x0)), sy(my(m.y0))); ctx.lineTo(sx(mx(m.x1)), sy(my(m.y1)));
     }
     ctx.stroke(); ctx.setLineDash([]);
   };
@@ -772,18 +867,27 @@ function draw() {
     let i = n - 1; while (i > 0 && moves[i].len === undefined) i--;
     const m = moves[i];
     if (m.x1 !== undefined) {
-      ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(sx(m.x1 + dx), sy(m.y1 + dy), 4, 0, 7); ctx.fill();
+      ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(sx(mx(m.x1)), sy(my(m.y1)), 4, 0, 7); ctx.fill();
     }
   }
 
   // Umriss der Grafik beim Überfahren/Ziehen, mit Position der Ecke am Nullpunkt (Drucker unten links, AxiDraw oben links)
-  if (box && (hover || grab)) {
-    const x0 = sx(box.x0 + sh.x), y0 = sy(box.y0 + sh.y), x1 = sx(box.x1 + sh.x), y1 = sy(box.y1 + sh.y);
+  // dazu die Anfasser zum Skalieren und beim Skalieren die Größe
+  if (T && (hover || grab || scaling)) {
+    const x0 = sx(T.x0), y0 = sy(T.y0), x1 = sx(T.x1), y1 = sy(T.y1);
     ctx.strokeStyle = css('--accent'); ctx.lineWidth = 1; ctx.setLineDash([5, 4]);
     ctx.strokeRect(x0, y1, x1 - x0, y0 - y1); ctx.setLineDash([]);
     ctx.fillStyle = css('--accent'); ctx.beginPath(); ctx.arc(x0, y0, 3.5, 0, 7); ctx.fill();
-    ctx.font = "600 11px 'JetBrains Mono', monospace"; ctx.textAlign = 'left'; ctx.textBaseline = 'top';
-    ctx.fillText(`${round1(box.x0 + sh.x)} | ${round1(box.y0 + sh.y)}`, x0 + 6, y0 + 4);
+    ctx.fillStyle = css('--panel'); ctx.lineWidth = 1.5;
+    for (const hd of HANDLES) {
+      const [hx, hy] = handlePos(T, hd);
+      ctx.fillRect(hx - 4, hy - 4, 8, 8); ctx.strokeRect(hx - 4, hy - 4, 8, 8);
+    }
+    ctx.fillStyle = css('--accent'); ctx.font = "600 11px 'JetBrains Mono', monospace"; ctx.textAlign = 'left';
+    ctx.textBaseline = ax ? 'bottom' : 'top';
+    const o = areaOrigin();
+    const label = scaling ? `${round1(T.x1 - T.x0)} × ${round1(T.y1 - T.y0)} mm` : `${round1(T.x0 - o.x)} | ${round1(T.y0 - o.y)}`;
+    ctx.fillText(label, x0 + 8, y0 + (ax ? -6 : 6));
   }
 
   // Nullpunkt: Düse (Kreis) und Stift (Fadenkreuz), verbunden durch den Versatz; das AxiDraw hat nur den Stift
@@ -814,47 +918,112 @@ canvas.addEventListener('wheel', (e) => {
   view.ox = mx - (mx - view.ox) * f; view.oy = my - (my - view.oy) * f; view.k *= f;
   draw();
 }, { passive: false });
-// Ziehen auf der Grafik verschiebt sie (setzt Position X/Y), sonst wird die Ansicht verschoben
-let drag = null, grab = null, hover = false;
+// Ziehen auf der Grafik verschiebt sie (setzt Position X/Y), Ziehen an einem Anfasser skaliert sie (setzt
+// Breite/Höhe), sonst wird die Ansicht verschoben. Die Grafik bleibt dabei immer in der plotbaren Fläche.
+let drag = null, grab = null, scaling = null, hover = false;
+// Anfasser als [hx, hy]: -1 = Seite bei x0/y0, 1 = Seite bei x1/y1, 0 = Mitte (Bettkoordinaten)
+const HANDLES = [[-1, -1], [0, -1], [1, -1], [1, 0], [1, 1], [0, 1], [-1, 1], [-1, 0]];
+const handlePos = (T, [hx, hy]) => [sx(hx < 0 ? T.x0 : hx > 0 ? T.x1 : (T.x0 + T.x1) / 2),
+                                    sy(hy < 0 ? T.y0 : hy > 0 ? T.y1 : (T.y0 + T.y1) / 2)];
+function pointer(e) {
+  const r = canvas.getBoundingClientRect();
+  return { mx: e.clientX - r.left, my: e.clientY - r.top };
+}
+function toBed(e) {   // Bildschirm -> Bettkoordinaten
+  const { mx, my } = pointer(e), y = (my - view.oy) / view.k;
+  return { x: (mx - view.ox) / view.k, y: isAxidraw() ? y : BED.h - y };
+}
+function overHandle(e) {
+  const T = target(); if (!T || !view) return null;
+  const { mx, my } = pointer(e);
+  return HANDLES.find((hd) => { const [hx, hy] = handlePos(T, hd); return Math.abs(mx - hx) <= 7 && Math.abs(my - hy) <= 7; }) || null;
+}
 function overGraphic(e) {
-  if (!box || !view) return false;
-  const r = canvas.getBoundingClientRect(), sh = shift(), tol = 6;
-  const mx = e.clientX - r.left, my = e.clientY - r.top;
-  const ya = sy(box.y0 + sh.y), yb = sy(box.y1 + sh.y);
-  return mx >= sx(box.x0 + sh.x) - tol && mx <= sx(box.x1 + sh.x) + tol &&
-         my >= Math.min(ya, yb) - tol && my <= Math.max(ya, yb) + tol;
+  const T = target(); if (!T || !view) return false;
+  const { mx, my } = pointer(e), tol = 6, ya = sy(T.y0), yb = sy(T.y1);
+  return mx >= sx(T.x0) - tol && mx <= sx(T.x1) + tol && my >= Math.min(ya, yb) - tol && my <= Math.max(ya, yb) + tol;
+}
+function handleCursor([hx, hy]) {
+  const dy = isAxidraw() ? hy : -hy;   // Richtung auf dem Bildschirm
+  if (!hx) return 'ns-resize';
+  if (!hy) return 'ew-resize';
+  return hx * dy > 0 ? 'nwse-resize' : 'nesw-resize';
+}
+// Einpassen und Zentrieren enden, sobald man die Grafik von Hand verschiebt oder skaliert
+function takeOver(T) {
+  const o = areaOrigin();
+  writeForm({ pos_x: round1(T.x0 - o.x), pos_y: round1(T.y0 - o.y) });
+  if (form.elements.fit.checked || form.elements.center.checked) {
+    form.elements.fit.checked = form.elements.center.checked = false;
+  }
+  syncMargin();
 }
 canvas.onpointerdown = (e) => {
   canvas.setPointerCapture(e.pointerId);
-  if (overGraphic(e)) {
-    const sh = shift();
-    grab = { x: e.clientX, y: e.clientY, px: box.x0 + sh.x, py: box.y0 + sh.y };
+  const hd = overHandle(e);
+  if (hd) {
+    const T = target();
+    scaling = { hd, start: toBed(e), R: { ...T } };
+    takeOver(T);
+    writeForm({ width: round1(T.x1 - T.x0), height: round1(T.y1 - T.y0) });
+    canvas.style.cursor = handleCursor(hd);
+  } else if (overGraphic(e)) {
+    const T = target(), o = areaOrigin();
+    grab = { x: e.clientX, y: e.clientY, px: T.x0 - o.x, py: T.y0 - o.y, w: T.x1 - T.x0, h: T.y1 - T.y0 };   // Position ab Flächenecke
+    takeOver(T);
     canvas.style.cursor = 'move';
-    if (form.elements.center.checked) {   // Ziehen beendet das Zentrieren
-      form.elements.center.checked = false;
-      writeForm({ pos_x: round1(grab.px), pos_y: round1(grab.py) }); syncMargin();
-    }
   } else {
     drag = { x: e.clientX, y: e.clientY }; canvas.style.cursor = 'grabbing';
   }
 };
+// Neues Rechteck beim Skalieren: gegenüberliegende Seite (bzw. Mitte) bleibt stehen, Fläche wird nie verlassen
+function scaledRect({ hd: [hx, hy], start, R }, p) {
+  const a = plotArea(readForm()), ax0 = a.x0, ax1 = a.x0 + a.w, ay0 = a.y0, ay1 = a.y0 + a.h;
+  const RW = R.x1 - R.x0, RH = R.y1 - R.y0, MIN = 1;
+  // gewünschte Größe aus der Mausbewegung
+  let w = RW + hx * (p.x - start.x), h = RH + hy * (p.y - start.y);   // hx/hy = 0: Achse bleibt
+  // größte erlaubte Größe je Achse, abhängig davon, was stehen bleibt
+  const maxSpan = (d, lo, hi, alo, ahi) => d > 0 ? ahi - lo : d < 0 ? hi - alo : 2 * Math.min((lo + hi) / 2 - alo, ahi - (lo + hi) / 2);
+  const maxW = Math.max(MIN, maxSpan(hx, R.x0, R.x1, ax0, ax1)), maxH = Math.max(MIN, maxSpan(hy, R.y0, R.y1, ay0, ay1));
+  if (form.elements.keep_ratio.checked) {
+    const kx = w / RW, ky = h / RH;
+    let k = !hx ? ky : !hy ? kx : (Math.abs(kx - 1) > Math.abs(ky - 1) ? kx : ky);
+    k = Math.max(k, MIN / Math.min(RW || MIN, RH || MIN));
+    k = Math.min(k, RW ? maxW / RW : Infinity, RH ? maxH / RH : Infinity);
+    w = RW * k; h = RH * k;
+  } else {
+    w = Math.min(Math.max(w, MIN), maxW); h = Math.min(Math.max(h, MIN), maxH);
+  }
+  const place = (d, lo, hi, size) => d > 0 ? lo : d < 0 ? hi - size : (lo + hi) / 2 - size / 2;
+  const x0 = place(hx, R.x0, R.x1, w), y0 = place(hy, R.y0, R.y1, h);
+  return { x0, y0, w, h };
+}
 canvas.onpointermove = (e) => {
+  if (scaling) {
+    const r = scaledRect(scaling, toBed(e)), o = areaOrigin();
+    // Position zuerst ungerundet begrenzen, damit Rundung nicht über den Rand schiebt
+    const p = clampPos(r.x0 - o.x, r.y0 - o.y, r.w, r.h);
+    writeForm({ width: round1(r.w), height: round1(r.h), pos_x: p.x, pos_y: p.y });
+    draw(); return;
+  }
   if (grab) {
-    writeForm({ pos_x: round1(grab.px + (e.clientX - grab.x) / view.k),
-                pos_y: round1(grab.py + (isAxidraw() ? 1 : -1) * (e.clientY - grab.y) / view.k) });
+    const p = clampPos(grab.px + (e.clientX - grab.x) / view.k,
+                       grab.py + (isAxidraw() ? 1 : -1) * (e.clientY - grab.y) / view.k, grab.w, grab.h);
+    writeForm({ pos_x: p.x, pos_y: p.y });
     draw(); return;
   }
   if (drag) {
     view.ox += e.clientX - drag.x; view.oy += e.clientY - drag.y; drag = { x: e.clientX, y: e.clientY }; draw(); return;
   }
-  const h = overGraphic(e);
-  if (h !== hover) { hover = h; canvas.style.cursor = h ? 'move' : ''; draw(); }
+  const hd = overHandle(e), h = !!hd || overGraphic(e);
+  canvas.style.cursor = hd ? handleCursor(hd) : h ? 'move' : '';
+  if (h !== hover) { hover = h; draw(); }
 };
 canvas.onpointerup = () => {
-  if (grab) { grab = null; save(); clearTimeout(timer); convert(); }
+  if (grab || scaling) { grab = scaling = null; save(); clearTimeout(timer); convert(); }
   drag = null; canvas.style.cursor = hover ? 'move' : '';
 };
-canvas.onpointerleave = () => { if (hover && !grab) { hover = false; draw(); } };
+canvas.onpointerleave = () => { if (hover && !grab && !scaling) { hover = false; draw(); } };
 $('fitView').onclick = () => { fitView(); draw(); };
 $('progress').oninput = draw;
 $('showTravel').onchange = draw;
@@ -932,7 +1101,7 @@ applyI18n();
   DEFAULTS = data.defaults; MODELS = data.axidraw_models;
   MODELS.forEach((m, i) => $('axidrawModel').add(new Option(`${m.name} (${m.w} × ${m.h} mm)`, i)));
   writeForm({ ...DEFAULTS, ...load() });
-  syncMargin(); syncTrace(); syncMachine(); showDerived(); fitView();
+  syncMargin(); syncTrace(); syncSafety(); syncMachine(); showDerived(); fitView();
   const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   await Promise.all([printerPresets.reload(stored('plotter-preset')), penPresets.reload(stored('uplot-pen'))]);
   for (const name of data.examples) $('example').add(new Option(name, name));
