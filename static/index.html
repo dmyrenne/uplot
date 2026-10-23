@@ -175,23 +175,29 @@
 
     <h2 data-i18n="h.layout"></h2>
     <div class="grid">
-      <label class="check"><input type="checkbox" name="fit"> <span data-i18n="fit"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.fit">i</span></label>
-      <label><span class="lt"><span data-i18n="margin"></span></span><input type="number" name="margin" step="0.5" min="0"></label>
-      <label class="check"><input type="checkbox" name="center"> <span data-i18n="center"></span></label>
-      <label><span class="lt"><span data-i18n="pos_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.pos">i</span></span><input type="number" name="pos_x" step="0.5"></label>
+      <label class="check" style="grid-column:auto"><input type="radio" name="placement" value="free"> <span data-i18n="placement.free"></span></label>
+      <label class="check" style="grid-column:auto"><input type="radio" name="placement" value="page"> <span data-i18n="placement.page"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.placement">i</span></label>
+      <label class="check" data-free><input type="checkbox" name="fit"> <span data-i18n="fit"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.fit">i</span></label>
+      <label data-free><span class="lt"><span data-i18n="margin"></span></span><input type="number" name="margin" step="0.5" min="0"></label>
+      <label class="check" data-free><input type="checkbox" name="center"> <span data-i18n="center"></span></label>
+      <label><span class="lt"><span data-i18n="pos_x"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.pos" data-i18n-page-tip="tip.pos.page">i</span></span><input type="number" name="pos_x" step="0.5"></label>
       <label><span class="lt"><span data-i18n="pos_y"></span></span><input type="number" name="pos_y" step="0.5"></label>
-      <label><span class="lt"><span data-i18n="width"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.size">i</span></span><input type="number" name="width" step="0.5" min="0"></label>
-      <label><span class="lt"><span data-i18n="height"></span></span><input type="number" name="height" step="0.5" min="0"></label>
-      <label class="check" style="grid-column:auto"><input type="checkbox" name="keep_ratio"> <span data-i18n="keep_ratio"></span></label>
-      <button type="button" id="resetSize" data-i18n="resetSize" style="justify-self:start"></button>
-      <label><span class="lt"><span data-i18n="angle"></span></span><input type="number" name="angle" step="1" min="0" max="360"></label>
-      <span></span>
-      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_x"> <span data-i18n="mirror_x"></span></label>
-      <label class="check" style="grid-column:auto"><input type="checkbox" name="mirror_y"> <span data-i18n="mirror_y"></span></label>
+      <label data-free><span class="lt"><span data-i18n="width"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.size">i</span></span><input type="number" name="width" step="0.5" min="0"></label>
+      <label data-free><span class="lt"><span data-i18n="height"></span></span><input type="number" name="height" step="0.5" min="0"></label>
+      <label class="check" style="grid-column:auto" data-free><input type="checkbox" name="keep_ratio"> <span data-i18n="keep_ratio"></span></label>
+      <button type="button" id="resetSize" data-i18n="resetSize" style="justify-self:start" data-free></button>
+      <label data-free><span class="lt"><span data-i18n="angle"></span></span><input type="number" name="angle" step="1" min="0" max="360"></label>
+      <span data-free></span>
+      <label class="check" style="grid-column:auto" data-free><input type="checkbox" name="mirror_x"> <span data-i18n="mirror_x"></span></label>
+      <label class="check" style="grid-column:auto" data-free><input type="checkbox" name="mirror_y"> <span data-i18n="mirror_y"></span></label>
     </div>
+    <p class="hint" id="pageInfo" hidden></p>
 
     <h2 data-i18n="h.optim"></h2>
     <div class="grid">
+      <label><span class="lt"><span data-i18n="optimize"></span><span class="info" tabindex="0" role="button" aria-label="Info" data-i18n-tip="tip.optimize">i</span></span>
+        <select name="optimize"><option value="yes" data-i18n="optimize.yes"></option><option value="auto" data-i18n="optimize.auto"></option><option value="no" data-i18n="optimize.no"></option></select></label>
+      <span></span>
       <label class="check"><input type="checkbox" name="linesort"> <span data-i18n="linesort"></span></label>
       <label><span class="lt"><span data-i18n="linemerge_tol"></span></span><input type="number" name="linemerge_tol" step="0.05" min="0"></label>
       <label><span class="lt"><span data-i18n="simplify_tol"></span></span><input type="number" name="simplify_tol" step="0.05" min="0"></label>
@@ -219,6 +225,12 @@
           <select id="axidrawModel"><option value="" data-i18n="axidraw_model.custom"></option></select></label>
       </div>
     </div>
+    <div class="row" style="margin-top:8px">
+      <button type="button" id="profilesExport" data-i18n="profiles.export"></button>
+      <button type="button" id="profilesImport" data-i18n="profiles.import"></button>
+      <input type="file" id="profilesFile" accept=".json,application/json" hidden>
+    </div>
+    <p class="hint" id="profilesWhere"></p>
 
     <details>
       <summary data-i18n="h.calib"></summary>
@@ -268,6 +280,7 @@
     <div class="spacer"></div>
     <label class="check" style="grid-column:auto"><input type="checkbox" id="showTravel" checked> <span data-i18n="showTravel"></span></label>
     <button id="fitView" data-i18n="fitView"></button>
+    <button id="sendUprint" data-i18n="sendUprint" disabled></button>
     <button class="primary" id="download" data-i18n="download" disabled></button>
   </div>
   <div class="stage" id="stage">
@@ -435,9 +448,17 @@ for (const el of document.querySelectorAll('.info')) {
 }
 
 // Rand ist nur beim Einpassen relevant, die Position nur ohne Zentrieren
+const isPage = () => form.elements.placement.value === 'page';
 const syncMargin = () => {
+  // Seite 1:1: nur die Position der Papierecke zählt, Einpassen/Größe/Drehen/Spiegeln gelten nicht
+  for (const el of document.querySelectorAll('[data-free]')) el.hidden = isPage();
+  for (const el of document.querySelectorAll('[data-i18n-page-tip]')) {
+    el.dataset.i18nFreeTip ??= el.dataset.i18nTip;
+    el.dataset.i18nTip = isPage() ? el.dataset.i18nPageTip : el.dataset.i18nFreeTip;
+    el.dataset.tip = t(el.dataset.i18nTip);
+  }
   form.elements.margin.disabled = !form.elements.fit.checked;
-  form.elements.pos_x.disabled = form.elements.pos_y.disabled = form.elements.center.checked;
+  form.elements.pos_x.disabled = form.elements.pos_y.disabled = form.elements.center.checked && !isPage();
   // Größe gilt nur ohne Einpassen; die aktuelle Größe steht als Platzhalter in leeren Feldern
   form.elements.width.disabled = form.elements.height.disabled = form.elements.fit.checked;
   form.elements.width.placeholder = box ? round1(box.x1 - box.x0) : '';
@@ -507,6 +528,40 @@ async function trace() {
 // ---------- Profile (Drucker und Stift) ----------
 // Beide Profilarten funktionieren gleich: Auswahl, Speichern, Speichern unter, Verwerfen, Löschen.
 // Das Standardprofil lässt sich überschreiben und zurücksetzen.
+// Eigene Profile liegen im Browser (localStorage); nur eine eigene Instanz mit UPLOT_PROFILES_DIR speichert sie auf
+// dem Server (server_profiles in /api/defaults). Die Standardprofile kommen immer vom Server, nur lesend.
+let SERVER_PROFILES = false;
+const localKey = (url) => 'uplot-profiles' + url.replace('/api/', '-');   // uplot-profiles-presets, …-pens
+function localProfiles(url) { try { return JSON.parse(localStorage.getItem(localKey(url)) || '{}'); } catch { return {}; } }
+function storeLocal(url, profiles) {
+  try { localStorage.setItem(localKey(url), JSON.stringify(profiles)); }
+  catch { throw new Error(t('msg.noStorage')); }
+}
+const profileStore = (url) => ({
+  // gleiche Form wie GET /api/presets mit Server-Speicher: Standardprofil (ggf. überschrieben), dann eigene
+  async list() {
+    const data = await (await api(url)).json();
+    if (SERVER_PROFILES) return data;
+    const user = localProfiles(url), defaults = data.presets[0].settings, override = user[data.builtin];
+    delete user[data.builtin];
+    return { builtin: data.builtin, presets: [
+      { name: data.builtin, builtin: true, customized: !!override, settings: { ...defaults, ...override } },
+      ...Object.keys(user).sort().map((name) => ({ name, builtin: false, settings: { ...defaults, ...user[name] } })),
+    ] };
+  },
+  async put(name, values) {
+    if (!SERVER_PROFILES) { const p = localProfiles(url); p[name] = values; storeLocal(url, p); return; }
+    const res = await api(url + '/' + encodeURIComponent(name), {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
+    });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+  },
+  async remove(name) {
+    if (!SERVER_PROFILES) { const p = localProfiles(url); delete p[name]; storeLocal(url, p); return; }
+    const res = await api(url + '/' + encodeURIComponent(name), { method: 'DELETE' });
+    if (!res.ok) throw new Error((await res.json()).error || res.statusText);
+  },
+});
 function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
   const fields = root.querySelector('[data-role=fields]');   // optionale Eingabefelder direkt unter der Auswahl
   root.innerHTML = `
@@ -526,7 +581,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
       <button type="button" data-role="cancel" data-i18n="cancel"></button>
     </div>
     <p class="hint" data-role="msg" data-i18n="${hint}"></p>`;
-  const el = (r) => root.querySelector(`[data-role=${r}]`), sel = el('select');
+  const el = (r) => root.querySelector(`[data-role=${r}]`), sel = el('select'), store = profileStore(url);
   if (fields) sel.parentElement.after(fields);
   sel.setAttribute('data-i18n-aria', root.previousElementSibling.dataset.i18n);
   let list = [], keys = [], builtin = null, last = null;
@@ -553,7 +608,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
     el('delete').title = p?.builtin ? t('resetTitle') : '';
   }
   async function reload(select) {
-    const data = await (await api(url)).json();
+    const data = await store.list();
     list = data.presets; builtin = data.builtin;
     keys = Object.keys(byName(builtin).settings);
     sel.innerHTML = '';
@@ -577,13 +632,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
     apply(last);
     say(t('msg.loaded', { name: last }));
   };
-  async function put(name) {
-    const res = await api(url + '/' + encodeURIComponent(name), {
-      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values()),
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || res.statusText);
-  }
+  const put = (name) => store.put(name, values());
   el('save').onclick = async () => {
     const name = sel.value;
     try { await put(name); await reload(name); say(t('msg.saved', { name })); }
@@ -612,8 +661,7 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
   el('delete').onclick = async () => {
     const name = sel.value, isBuiltin = current()?.builtin;
     if (!confirm(t(isBuiltin ? 'confirm.reset' : 'confirm.delete', { name }))) return;
-    const res = await api(url + '/' + encodeURIComponent(name), { method: 'DELETE' });
-    if (!res.ok) { say((await res.json()).error, true); return; }
+    try { await store.remove(name); } catch (e) { say(e.message, true); return; }
     if (isBuiltin) { await reload(name); apply(name); say(t('msg.reset', { name })); return; }
     await reload(null);
     say(t('msg.deleted', { name }));
@@ -621,7 +669,13 @@ function presetManager({ root, url, storeKey, hint, placeholder, onApply }) {
   form.addEventListener('input', update);
   // Profilnamen (Standard-Zusatz) nach einem Sprachwechsel neu beschriften
   const relabel = () => { for (const o of sel.options) o.text = label(byName(o.value)); update(); };
-  return { reload, relabel };
+  // Export/Import: eigene und geänderte Standardprofile als {Name: Werte}
+  const dump = () => Object.fromEntries(list.filter((p) => !p.builtin || p.customized).map((p) => [p.name, p.settings]));
+  async function restore(profiles) {
+    for (const [name, v] of Object.entries(profiles || {})) await store.put(name, v);
+    await reload(sel.value);
+  }
+  return { reload, relabel, dump, restore };
 }
 const printerPresets = presetManager({
   root: $('printerPresets'), url: '/api/presets', storeKey: 'plotter-preset', hint: 'preset.hint', placeholder: 'presetName',
@@ -631,6 +685,21 @@ const penPresets = presetManager({
   root: $('penPresets'), url: '/api/pens', storeKey: 'uplot-pen', hint: 'pen.hint', placeholder: 'penName',
   onApply: draw,
 });
+$('profilesExport').onclick = () => {
+  const data = { uplot_profiles: 1, printer: printerPresets.dump(), pen: penPresets.dump() };
+  downloadBlob(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }), 'uplot-profiles.json');
+};
+$('profilesImport').onclick = () => $('profilesFile').click();
+$('profilesFile').onchange = async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const data = JSON.parse(await f.text());
+    if (data.uplot_profiles !== 1) throw new Error(t('msg.badProfiles'));
+    await printerPresets.restore(data.printer); await penPresets.restore(data.pen);
+    $('profilesWhere').textContent = t('msg.imported');
+  } catch (err) { $('profilesWhere').textContent = err.message; }
+};
 $('draft').onclick = () => { writeForm({ simplify_tol: 0.5, linemerge_tol: 0.5, linesort: true }); save(); convert(); };
 $('normal').onclick = () => { writeForm({ simplify_tol: 0, linemerge_tol: DEFAULTS.linemerge_tol, linesort: true }); save(); convert(); };
 
@@ -638,7 +707,7 @@ async function convert() {
   if (!svgFile) return;
   const my = ++seq;
   const fd = formData(svgFile, 'svg');
-  $('download').disabled = true;
+  $('download').disabled = $('sendUprint').disabled = true;
   showMessages([t('calculating')], true);
   let data;
   try {
@@ -653,7 +722,10 @@ async function convert() {
   result = data;
   moves = parseGcode(data.gcode);
   box = drawBox(data.settings);
-  if (box && data.settings.center) {   // zentrierte Lage übernehmen, damit Ausschalten sie beibehält
+  showPageInfo(data.info);
+  if (data.settings.placement === 'page') {
+    // Lage steht durch die Seite fest; ragt sie über die Fläche, warnt checkBounds
+  } else if (box && data.settings.center) {   // zentrierte Lage übernehmen, damit Ausschalten sie beibehält
     writeForm({ pos_x: round1(box.x0 - data.settings.area_x), pos_y: round1(box.y0 - data.settings.area_y) }); save();
   } else if (box) {
     // Keine Anschnitte: liegt die Grafik teilweise außerhalb der plotbaren Fläche, zurück hineinschieben
@@ -663,11 +735,20 @@ async function convert() {
     }
   }
   syncMargin();
-  $('download').disabled = false;
+  $('download').disabled = $('sendUprint').disabled = false;
   $('empty').style.display = 'none';
   renderStats();
   showMessages(checkBounds(data.settings));
   draw();
+}
+
+// Papierformat und ob die SVG schon mit vpype optimiert ist (aus /api/convert bei Seite 1:1 oder „nur wenn nötig“)
+function showPageInfo(info) {
+  const parts = [];
+  if (info && isPage()) parts.push(t('page.size', { w: info.page_w, h: info.page_h }));
+  if (info?.optimized) parts.push(t('page.optimized', { by: info.optimized_by }));
+  $('pageInfo').textContent = parts.join(' · ');
+  $('pageInfo').hidden = !parts.length;
 }
 
 // ---------- G-Code lesen ----------
@@ -713,7 +794,7 @@ function clampPos(x, y, w, h) {
 // Wo die Grafik laut Formular liegen soll (Bettkoordinaten), solange der G-Code dazu noch berechnet wird:
 // Position und Größe aus den Feldern, umgerechnet vom letzten Ergebnis (box)
 function target() {
-  if (!box) return null;
+  if (!box || isPage()) return null;   // Seite 1:1: nichts zum Ziehen und Skalieren, Vorschau zeigt den G-Code
   const s = readForm(), bw = box.x1 - box.x0, bh = box.y1 - box.y0;
   let w = bw, h = bh;
   if (!s.fit && +s.width > 0 && +s.height > 0) {
@@ -845,6 +926,13 @@ function draw() {
     ctx.fillRect(...ar);
     ctx.shadowColor = 'transparent'; ctx.shadowBlur = ctx.shadowOffsetY = 0;
     ctx.fillRect(...ar);
+  }
+
+  // Seite 1:1: Umriss des Papiers, Ecke an der Position (Stiftkoordinaten)
+  const info = result?.info;
+  if (isPage() && info?.page_w) {
+    ctx.strokeStyle = css('--muted'); ctx.lineWidth = 1; ctx.setLineDash([6, 4]);
+    ctx.strokeRect(...bedRect(+s.pos_x || 0, +s.pos_y || 0, info.page_w, info.page_h)); ctx.setLineDash([]);
   }
 
   const n = Math.round(moves.length * $('progress').value / 1000);
@@ -1079,12 +1167,93 @@ $('download').onclick = () => {
 };
 $('downloadSvg').onclick = () => svgFile && downloadBlob(svgFile, svgFile.name);
 
+// ---------- Übergabe an und von µprint (uplot#3, uprint#20) ----------
+// Alles läuft im Browser per postMessage zwischen den beiden Fenstern; der µplot-Server sieht weder die Adresse
+// von µprint noch den G-Code. Die Adresse gilt nur für diese Sitzung (sessionStorage).
+const DEVICE_AXIDRAW = 1;   // device_type in µprint
+const session = { get: (k) => { try { return sessionStorage.getItem(k); } catch { return null; } },
+                  set: (k, v) => { try { sessionStorage.setItem(k, v); } catch {} } };
+function originOf(addr) {
+  try { return new URL(/^https?:\/\//i.test(addr) ? addr : 'http://' + addr).origin; } catch { return null; }
+}
+let uprintOrigin = originOf(new URLSearchParams(location.search).get('uprint') || session.get('uplot-uprint') || '');
+if (uprintOrigin) session.set('uplot-uprint', uprintOrigin);
+const gcodeName = () => (svgFile?.name || 'plot.svg').replace(/\.svg$/i, '') + '.gcode';
+let uprintWin = null, uprintDevice = null;   // µprint, das dieses Fenster zum Bearbeiten geöffnet hat
+
+$('sendUprint').onclick = () => {
+  if (!result) return;
+  if (uprintWin && !uprintWin.closed) return sendBack();
+  if (!uprintOrigin) {
+    const addr = prompt(t('uprint.ask'), 'http://uprint.local');
+    if (!addr) return;
+    uprintOrigin = originOf(addr.trim());
+    if (!uprintOrigin) { showMessages([t('uprint.badAddr')]); return; }
+    session.set('uplot-uprint', uprintOrigin);
+  }
+  const origin = uprintOrigin, gcode = result.gcode, name = gcodeName(), axi = result.settings.machine === 'axidraw';
+  const win = window.open(origin + '/#import', 'uprint');
+  if (!win) { showMessages([t('uprint.blocked')]); return; }
+  showMessages([t('uprint.waiting')], true);
+  // µprint kann erst nach dem Anmelden antworten: nach 10 s ein Hinweis, nach 2 min aufgeben
+  const slow = setTimeout(() => showMessages([t('uprint.slow')]), 10000);
+  const stop = () => { clearTimeout(slow); clearTimeout(giveUp); removeEventListener('message', onMsg); $('status').hidden = true; };
+  const giveUp = setTimeout(() => { stop(); showMessages([t('uprint.timeout')]); }, 120000);
+  function onMsg(e) {
+    if (e.source !== win || e.origin !== origin || !e.data) return;
+    if (e.data.type === 'uprint-ready') {
+      if ((e.data.device_type === DEVICE_AXIDRAW) !== axi && !confirm(t(axi ? 'uprint.notAxi' : 'uprint.isAxi'))) { stop(); return; }
+      win.postMessage({ type: 'uplot-gcode', name, gcode }, origin);
+      clearTimeout(slow);
+      showMessages([t('uprint.sent', { name })], true);
+    } else if (e.data.type === 'uprint-uploaded') {
+      stop(); showMessages([t('uprint.uploaded', { name: e.data.name || name })]);
+    }
+  }
+  addEventListener('message', onMsg);
+};
+
+// Zurück an das µprint, das µplot geöffnet hat: es wartet schon auf den G-Code
+function sendBack() {
+  const name = gcodeName(), axi = result.settings.machine === 'axidraw';
+  if ((uprintDevice === DEVICE_AXIDRAW) !== axi && !confirm(t(axi ? 'uprint.notAxi' : 'uprint.isAxi'))) return;
+  const onMsg = (e) => {
+    if (e.source !== uprintWin || e.origin !== uprintOrigin || e.data?.type !== 'uprint-uploaded') return;
+    removeEventListener('message', onMsg);
+    showMessages([t('uprint.uploaded', { name: e.data.name || name })]);
+  };
+  addEventListener('message', onMsg);
+  uprintWin.postMessage({ type: 'uplot-gcode', name, gcode: result.gcode }, uprintOrigin);
+  try { uprintWin.focus(); } catch {}
+  showMessages([t('uprint.sent', { name })]);
+}
+
+// Aus µprint geöffnet (<µplot>/?uprint=<µprint>#import-svg): bereit melden, dann kommt die SVG mit Gerätetyp und
+// Zeichenfläche. Beim AxiDraw gilt die Fläche aus µprint und die Seite wird 1:1 übernommen.
+function importFromUprint() {
+  if (location.hash !== '#import-svg' || !window.opener || !uprintOrigin) return;
+  history.replaceState(null, '', location.pathname + location.search);   // Neuladen fordert nichts erneut an
+  addEventListener('message', function onMsg(e) {
+    if (e.source !== window.opener || e.origin !== uprintOrigin || e.data?.type !== 'uprint-svg') return;
+    removeEventListener('message', onMsg);
+    const d = e.data, axi = d.device_type === DEVICE_AXIDRAW;
+    uprintWin = window.opener; uprintDevice = d.device_type;
+    writeForm({ machine: axi ? 'axidraw' : 'printer' });
+    if (axi && d.area?.w > 0 && d.area?.h > 0) writeForm({ bed_w: d.area.w, bed_h: d.area.h, placement: 'page', pos_x: 0, pos_y: 0 });
+    syncMachine(); syncMargin(); save(); fitView();
+    setFile(new File([d.svg], d.name || 'import.svg', { type: 'image/svg+xml' }));
+  });
+  window.opener.postMessage({ type: 'uplot-ready' }, uprintOrigin);
+}
+
 // ---------- Sprache ----------
 for (const [code, name] of Object.entries(LANGS)) $('lang').add(new Option(name, code));
 $('lang').value = LANG;
 function relabel() {
   applyI18n();
-  printerPresets.relabel(); penPresets.relabel(); showDerived(); renderStats();
+  printerPresets.relabel(); penPresets.relabel(); showDerived(); renderStats(); syncMargin();
+  $('profilesWhere').textContent = t(SERVER_PROFILES ? 'profiles.server' : 'profiles.browser');
+  if (result) showPageInfo(result.info);
   if (result) showMessages(checkBounds(result.settings));
   draw();
 }
@@ -1098,13 +1267,15 @@ applyI18n();
 // ---------- Start ----------
 (async () => {
   const data = await (await api('/api/defaults')).json();
-  DEFAULTS = data.defaults; MODELS = data.axidraw_models;
+  DEFAULTS = data.defaults; MODELS = data.axidraw_models; SERVER_PROFILES = data.server_profiles;
+  $('profilesWhere').textContent = t(SERVER_PROFILES ? 'profiles.server' : 'profiles.browser');
   MODELS.forEach((m, i) => $('axidrawModel').add(new Option(`${m.name} (${m.w} × ${m.h} mm)`, i)));
   writeForm({ ...DEFAULTS, ...load() });
   syncMargin(); syncTrace(); syncSafety(); syncMachine(); showDerived(); fitView();
   const stored = (k) => { try { return localStorage.getItem(k); } catch { return null; } };
   await Promise.all([printerPresets.reload(stored('plotter-preset')), penPresets.reload(stored('uplot-pen'))]);
   for (const name of data.examples) $('example').add(new Option(name, name));
+  importFromUprint();
   draw();
   document.fonts.ready.then(draw);   // Achsbeschriftung mit der geladenen Schrift neu zeichnen
 })();
