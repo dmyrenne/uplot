@@ -2,6 +2,9 @@
 
 Nimmt eine SVG-Datei entgegen, erzeugt eine vpype-Config aus den Kalibrierwerten,
 lässt vpype/vpype-gcode den G-Code erzeugen und schickt ihn an den Browser zurück.
+
+Der Server speichert nichts: Dateien liegen nur während einer Anfrage in einem temporären Verzeichnis, eigene
+Profile im Browser. Nur eine eigene Instanz mit UPLOT_PROFILES_DIR legt Profile auf dem Server ab (uplot#2).
 """
 
 import json
@@ -12,6 +15,7 @@ import sys
 import tempfile
 from pathlib import Path
 
+import vpype as vp
 from flask import Flask, jsonify, request, send_from_directory
 from PIL import Image
 
@@ -20,8 +24,11 @@ import raster
 BASE = Path(__file__).parent
 VPYPE = str(Path(sys.executable).parent / "vpype")
 EXAMPLES = BASE / "examples"
-# Profile liegen neben der App oder, z. B. im Docker-Container, im Verzeichnis UPLOT_DATA
-DATA = Path(os.environ.get("UPLOT_DATA", BASE))
+# Eigene Profile auf dem Server nur auf ausdrücklichen Wunsch (eigene Instanz); sonst liegen sie im Browser und
+# der Server legt keine Dateien an. Die Standardprofile liefert er immer, nur lesend.
+PROFILES_DIR = os.environ.get("UPLOT_PROFILES_DIR")
+DATA = Path(PROFILES_DIR) if PROFILES_DIR else None
+MM = vp.convert_length("mm")
 BUILTIN_PRESET = "Prusa MK3S+"
 
 app = Flask(__name__, static_folder=None)
@@ -39,6 +46,9 @@ MESSAGES = {
     "no_image": {"de": "Keine Bilddatei übergeben.", "en": "No image file received."},
     "bad_image": {"de": "Das Bild lässt sich nicht lesen (nur PNG und JPG).",
                   "en": "The image could not be read (PNG and JPG only)."},
+    "bad_svg": {"de": "Die SVG-Datei lässt sich nicht lesen.", "en": "The SVG file could not be read."},
+    "no_profiles": {"de": "Profile werden auf diesem Server nicht gespeichert, sondern im Browser.",
+                    "en": "This server does not store profiles; they are kept in the browser."},
 }
 
 
@@ -47,9 +57,25 @@ def msg(name, **kw):
     return MESSAGES[name][lang].format(**kw)
 app.config["MAX_CONTENT_LENGTH"] = 50 * 1024 * 1024
 
+# µprint ruft diese Endpunkte aus seiner eigenen Seite im Browser auf (anderer Ursprung). Ohne Cookies und ohne
+# gespeicherte Daten ist das für jeden Ursprung unbedenklich.
+CORS_PATHS = ("/api/defaults", "/api/inspect", "/api/convert")
+
+
+@app.after_request
+def cors(resp):
+    if request.path in CORS_PATHS:
+        resp.headers["Access-Control-Allow-Origin"] = "*"
+        resp.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        resp.headers["Access-Control-Allow-Headers"] = "Content-Type"
+        resp.headers["Access-Control-Max-Age"] = "86400"
+    return resp
+
 # Standardwerte = Werte aus plot.sh / vpype.toml / docs/calibrating.md des Originalrepos
 DEFAULTS = {
     "machine": "printer",   # "printer" (Marlin/Prusa) oder "axidraw" (AxiDraw/NextDraw über µprint)
+    "placement": "free",    # "free": Layout unten; "page": Seite der SVG 1:1, Papierecke am Nullpunkt
+    "optimize": "yes",      # "yes", "no" oder "auto" (überspringen, wenn die SVG schon mit vpype optimiert ist)
     "offset_x": 45.0,       # Düse im Nullpunkt: Druckerkoordinate, bei der der Stift auf der unteren
     "offset_y": 38.0,       # linken Ecke des Betts (0|0) steht (translate in plot.sh)
     "bed_w": 250.0,         # Druckbett MK3S+
@@ -90,12 +116,13 @@ DEFAULTS = {
 TRACE_DEFAULTS = {"trace_mode": "hatch", "trace_threshold": 50.0, "trace_spacing": 1.0, "trace_levels": 3.0,
                   "trace_centerline": 10.0}
 
+# Erste Zeile ist die Formatkennung für µprint (Stift-Plot auf dem Drucker, kein 3D-Druck)
 CONFIG_TEMPLATE = """[gwrite.plotter]
 unit = "mm"
 invert_y = false
 invert_x = false
 
-document_start = '''
+document_start = '''; uplot-printer 1
 ; -- setup
 M3                              ; start spindle
 G21                             ; units are millimeters
@@ -193,12 +220,17 @@ def clean_machine(raw):
     return "axidraw" if raw == "axidraw" else "printer"
 
 
+CHOICES = {"placement": ("free", "page"), "optimize": ("yes", "no", "auto")}
+
+
 def parse_settings(form):
     s = {}
     for key, default in DEFAULTS.items():
         raw = form.get(key)
         if key == "machine":
             s[key] = clean_machine(raw)
+        elif key in CHOICES:
+            s[key] = raw if raw in CHOICES[key] else default
         elif isinstance(default, bool):
             s[key] = raw in ("1", "true", "on") if raw is not None else default
         else:
@@ -236,11 +268,19 @@ def plot_area(s):
             x0, y0)
 
 
-def build_pipeline(s, svg_path, gcode_path):
+def build_pipeline(s, svg_path, gcode_path, info=None):
+    """vpype-Befehlskette. info = inspect_svg() der Eingabe, nötig für placement=page und optimize=auto."""
     axidraw = s["machine"] == "axidraw"
     cmd = ["read", str(svg_path)]
     if s["merge_layers"]:
         cmd += ["lmove", "all", "1"]
+    if s["placement"] == "page":
+        # Seite 1:1: Koordinaten der SVG bleiben, die Papierecke (oben links in der SVG) liegt am Nullpunkt
+        # plus Position. Drucker: an der Seitenmitte umklappen, damit die Papierecke unten links liegt.
+        if not axidraw:
+            cmd += ["scale", "--origin", "0", f"{info['page_h'] / 2}mm", "--", "1", "-1"]
+        cmd += ["translate", f"{s['offset_x'] + s['pos_x']:g}mm", f"{s['offset_y'] + s['pos_y']:g}mm"]
+        return cmd + optimize_steps(s, info) + ["gwrite", "--profile", "plotter", str(gcode_path)]
     if s["mirror_x"] or s["mirror_y"]:
         # um die Mitte der Grafik spiegeln
         cmd += ["scale", "--", "-1" if s["mirror_x"] else "1", "-1" if s["mirror_y"] else "1"]
@@ -267,15 +307,106 @@ def build_pipeline(s, svg_path, gcode_path):
     if not s["center"]:
         dx, dy = dx + s["pos_x"], dy + s["pos_y"]
     cmd += ["translate", f"{dx:g}mm", f"{dy:g}mm"]
+    return cmd + optimize_steps(s, info) + ["gwrite", "--profile", "plotter", str(gcode_path)]
+
+
+def optimize_steps(s, info):
+    steps = []
     if s["simplify_tol"] > 0:
-        cmd += ["linesimplify", "--tolerance", f"{s['simplify_tol']}mm"]
+        steps += ["linesimplify", "--tolerance", f"{s['simplify_tol']}mm"]
     if s["min_length"] > 0:
-        cmd += ["filter", "--min-length", f"{s['min_length']}mm"]
-    cmd += ["linemerge", "--tolerance", f"{s['linemerge_tol']}mm"]
+        steps += ["filter", "--min-length", f"{s['min_length']}mm"]
+    # Schon mit vpype optimiert (Metadaten der SVG): Reihenfolge und Zusammenfassung der Linien beibehalten
+    if s["optimize"] == "no" or (s["optimize"] == "auto" and info and info["optimized"]):
+        return steps
+    steps += ["linemerge", "--tolerance", f"{s['linemerge_tol']}mm"]
     if s["linesort"]:
-        cmd += ["linesort"]
-    cmd += ["gwrite", "--profile", "plotter", str(gcode_path)]
-    return cmd
+        steps += ["linesort"]
+    return steps
+
+
+# ---------- SVG untersuchen ----------
+METADATA = re.compile(rb"<metadata[^>]*>(.*?)</metadata>", re.S)
+GENERATOR = re.compile(rb"<!--\s*Generator:\s*([^>]{1,80}?)\s*-->|inkscape:version=\"([^\"]{1,40})\"")
+
+
+def svg_origin(raw):
+    """Erzeugendes Programm und ob vpype die Linien schon optimiert hat, aus den Metadaten der SVG."""
+    generator, optimized, by = None, False, None
+    m = METADATA.search(raw)
+    if m:
+        meta = m.group(1).strip()
+        try:   # handcoded.art plotter workbench: JSON mit "optimization": {"tool": "vpype", ...}
+            data = json.loads(meta.decode())
+            generator = data.get("generator")
+            opt = data.get("plotPass", {}).get("optimization") or data.get("optimization") or {}
+            if "vpype" in str(opt.get("tool", "")).lower():
+                optimized, by = True, opt.get("version") or "vpype"
+        except (ValueError, AttributeError, UnicodeDecodeError):
+            # vpype selbst schreibt seine Befehlszeile als <dc:source>vpype …</dc:source>
+            src = re.search(rb"<dc:source>\s*(vpype[^<]*)</dc:source>", meta)
+            if src and re.search(rb"\blinesort\b", src.group(1)):
+                optimized, by = True, "vpype"
+            generator = "vpype" if src else None
+    if not generator:
+        g = GENERATOR.search(raw[:4096])
+        if g:
+            generator = (g.group(1) or b"Inkscape " + g.group(2)).decode(errors="replace")
+    return generator, optimized, by
+
+
+def inspect_svg(path):
+    """Seitengröße, Ausdehnung, Linien und Wege einer SVG in mm."""
+    raw = Path(path).read_bytes()
+    generator, optimized, by = svg_origin(raw)
+    doc = vp.read_multilayer_svg(str(path), quantization=0.1)
+    page_w, page_h = doc.page_size or (0, 0)
+    bounds = doc.bounds()
+    return {
+        "page_w": round(page_w / MM, 2), "page_h": round(page_h / MM, 2),
+        "bounds": [round(v / MM, 2) for v in bounds] if bounds else None,
+        "layers": len(doc.layers), "lines": sum(len(lc) for lc in doc.layers.values()),
+        "draw_length": round(doc.length() / MM), "travel_length": round(doc.pen_up_length() / MM),
+        "generator": generator, "optimized": optimized, "optimized_by": by,
+    }
+
+
+# Zeilen aus den Vorlagen oben: Ziel einer Leerfahrt, Stift senken, Zeichnen
+GCODE_XY = re.compile(r"^G0([01]) X(-?[\d.]+) Y(-?[\d.]+)")
+
+
+def gcode_stats(gcode):
+    """Ausdehnung der gezeichneten Linien und Länge der Leerfahrten zwischen ihnen, aus dem fertigen G-Code."""
+    x0 = y0 = float("inf")
+    x1 = y1 = float("-inf")
+    travel, last, move = 0.0, None, None
+    for line in gcode.splitlines():
+        m = GCODE_XY.match(line)
+        if m:
+            p = (float(m.group(2)), float(m.group(3)))
+            if m.group(1) == "1":
+                pts = [p]
+            else:
+                move, pts = p, []
+        elif "; pen down" in line and move:
+            if last:
+                travel += ((move[0] - last[0]) ** 2 + (move[1] - last[1]) ** 2) ** .5
+            pts = [move]
+        else:
+            continue
+        for x, y in pts:
+            x0, y0, x1, y1 = min(x0, x), min(y0, y), max(x1, x), max(y1, y)
+            last = (x, y)
+    bounds = [round(v, 2) for v in (x0, y0, x1, y1)] if x0 <= x1 else None
+    return bounds, round(travel)
+
+
+def add_bounds(gcode, bounds):
+    """Ausdehnung als zweite Zeile, damit µprint sie ohne die ganze Datei zu lesen kennt."""
+    if not bounds:
+        return gcode
+    first, _, rest = gcode.partition("\n")
+    return f"{first}\n; uplot-bounds {' '.join(f'{v:g}' for v in bounds)}\n{rest}"
 
 
 @app.get("/")
@@ -292,7 +423,7 @@ def static_file(name):
 def defaults():
     examples = sorted(p.name for p in EXAMPLES.glob("*.svg"))
     return jsonify(defaults=DEFAULTS | PEN_DEFAULTS | TRACE_DEFAULTS, examples=examples,
-                   axidraw_models=AXIDRAW_MODELS)
+                   axidraw_models=AXIDRAW_MODELS, server_profiles=DATA is not None)
 
 
 # ---------- Profile ----------
@@ -332,6 +463,8 @@ def preset_file(kind):
 
 
 def load_presets(kind):
+    if DATA is None:
+        return {}
     try:
         return json.loads(preset_file(kind).read_text())
     except FileNotFoundError:
@@ -364,6 +497,8 @@ def list_presets(kind):
 @app.put("/api/presets/<path:name>", defaults={"kind": "printer"})
 @app.put("/api/pens/<path:name>", defaults={"kind": "pen"})
 def save_preset(kind, name):
+    if DATA is None:
+        return jsonify(error=msg("no_profiles")), 403
     name = name.strip()
     if not name or len(name) > 60:
         return jsonify(error=msg("name_length")), 400
@@ -381,6 +516,8 @@ def save_preset(kind, name):
 @app.delete("/api/presets/<path:name>", defaults={"kind": "printer"})
 @app.delete("/api/pens/<path:name>", defaults={"kind": "pen"})
 def delete_preset(kind, name):
+    if DATA is None:
+        return jsonify(error=msg("no_profiles")), 403
     presets = load_presets(kind)
     if presets.pop(name, None) is None:
         return jsonify(error=msg("not_found")), 404
@@ -423,6 +560,20 @@ def trace():
     return jsonify(svg=svg)
 
 
+@app.post("/api/inspect")
+def inspect():
+    upload = request.files.get("svg")
+    if upload is None:
+        return jsonify(error=msg("no_svg")), 400
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "in.svg"
+        upload.save(path)
+        try:
+            return jsonify(inspect_svg(path))
+        except Exception:
+            return jsonify(error=msg("bad_svg")), 400
+
+
 @app.post("/api/convert")
 def convert():
     upload = request.files.get("svg")
@@ -437,9 +588,15 @@ def convert():
         tmp = Path(tmp)
         svg_path, gcode_path, cfg_path = tmp / "in.svg", tmp / "out.gcode", tmp / "vpype.toml"
         upload.save(svg_path)
+        info = None
+        if s["placement"] == "page" or s["optimize"] == "auto":
+            try:
+                info = inspect_svg(svg_path)
+            except Exception:
+                return jsonify(error=msg("bad_svg")), 400
         template = AXIDRAW_TEMPLATE if s["machine"] == "axidraw" else CONFIG_TEMPLATE
         cfg_path.write_text(template.format(**s))
-        pipeline = build_pipeline(s, svg_path, gcode_path)
+        pipeline = build_pipeline(s, svg_path, gcode_path, info)
         proc = subprocess.run(
             [VPYPE, "--config", str(cfg_path), *pipeline],
             capture_output=True, text=True, timeout=300,
@@ -451,8 +608,14 @@ def convert():
             "input.svg" if a == str(svg_path) else "output.gcode" if a == str(gcode_path) else a
             for a in pipeline
         )
-        return jsonify(gcode=gcode_path.read_text(), command="vpype --config vpype.toml " + shown,
-                       settings=s)
+        gcode = gcode_path.read_text()
+        bounds, travel = gcode_stats(gcode)
+        # Passt die Zeichnung in die plotbare Fläche (Stiftkoordinaten, Sicherheitsabstände abgezogen)?
+        ax0, ay0 = s["offset_x"] + s["area_x"], s["offset_y"] + s["area_y"]
+        fits = bool(bounds) and (bounds[0] >= ax0 - 0.01 and bounds[1] >= ay0 - 0.01 and
+                                 bounds[2] <= ax0 + s["area_w"] + 0.01 and bounds[3] <= ay0 + s["area_h"] + 0.01)
+        return jsonify(gcode=add_bounds(gcode, bounds), command="vpype --config vpype.toml " + shown, settings=s,
+                       info=info, stats={"bounds": bounds, "travel_length": travel}, fits=fits)
 
 
 if __name__ == "__main__":
