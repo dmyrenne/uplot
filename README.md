@@ -14,8 +14,7 @@ Der G-Code entsteht mit [vpype](https://github.com/abey79/vpype) und [vpype-gcod
 Voraussetzung: Docker (Podman geht ebenso). Das fertige Image liegt in der GitHub Container Registry
 (für `linux/amd64` und `linux/arm64`, z. B. Raspberry Pi 4/5):
 
-    docker run -d --name uplot -p 5055:5055 -v uplot-data:/data --restart unless-stopped \
-      ghcr.io/dmyrenne/uplot:latest
+    docker run -d --name uplot -p 5055:5055 --restart unless-stopped ghcr.io/dmyrenne/uplot:latest
 
 Oder mit Compose aus diesem Repo:
 
@@ -34,11 +33,25 @@ sie stehen unter „Beispiel laden …“ zur Auswahl.
 | Stoppen | `docker compose down` |
 | Logs ansehen | `docker compose logs -f` |
 | Aktualisieren | `docker compose pull && docker compose up -d` (selbst gebaut: `git pull && docker compose up -d --build`) |
-| Profile sichern | `docker compose cp uplot:/data/presets.json .` und `docker compose cp uplot:/data/pens.json .` |
-| Profile einspielen | `docker compose cp presets.json uplot:/data/presets.json` und `docker compose cp pens.json uplot:/data/pens.json` |
 
-- Die Drucker- und Stift-Profile liegen im Docker-Volume `uplot-data` (im Container unter `/data`) und bleiben bei
-  Neustarts und Updates erhalten. `docker compose down -v` löscht sie mit.
+## Datenschutz und Profile
+
+- **Der Server speichert nichts.** SVG, Bild und G-Code liegen nur während einer Anfrage in einem temporären
+  Verzeichnis, das danach gelöscht wird. Es gibt keine Anmeldung, keine Sitzungen auf dem Server und keine
+  Cookies; jeder Browser arbeitet für sich. Deshalb kann μplot auch öffentlich laufen.
+- Eigene Drucker- und Stift-Profile liegen im Browser (`localStorage`), pro Browser und Gerät. „Profile
+  exportieren“/„Profile importieren“ sichert sie als JSON-Datei oder nimmt sie auf ein anderes Gerät mit.
+  Die Standardprofile kommen vom Server, nur lesend.
+- Eigene Instanz mit gemeinsamen Profilen für alle Geräte: Umgebungsvariable `UPLOT_PROFILES_DIR` auf ein Verzeichnis
+  setzen (Docker: in `compose.yaml` den auskommentierten Block aktivieren, Profile liegen dann im Volume
+  `uplot-data` unter `/data`). Ohne die Variable lehnt der Server das Speichern von Profilen ab.
+- Bisherige Profile aus `presets.json`/`pens.json` (vor uplot#2): die Instanz einmal mit `UPLOT_PROFILES_DIR` starten,
+  „Profile exportieren“, dann ohne die Variable „Profile importieren“.
+- Die Umwandlung schickt die Datei an den μplot-Server, auf dem die Seite läuft. Wer auch das nicht möchte, betreibt
+  eine eigene Instanz (Docker oder ohne Docker, siehe unten), auch auf dem eigenen Rechner.
+
+## Betrieb
+
 - μplot ist im ganzen Netz erreichbar. Es gibt keine Anmeldung: nur in vertrauenswürdigen Netzen betreiben oder
   hinter einen Reverse Proxy mit Anmeldung stellen. Nur vom eigenen Rechner erreichbar: in `compose.yaml`
   `"5055:5055"` durch `"127.0.0.1:5055:5055"` ersetzen.
@@ -64,7 +77,8 @@ Benötigt Python 3.12 (vpype startet unter Python 3.14 nicht). Mit [uv](https://
     ./start.sh              # öffnet http://127.0.0.1:5055
 
 `./start.sh --no-browser` startet den Server, ohne einen Browser zu öffnen; `--port` wählt einen anderen Port.
-Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neben `app.py` (oder im Verzeichnis aus der Umgebungsvariable `UPLOT_DATA`).
+Profile auf dem Server wie bei Docker nur mit `UPLOT_PROFILES_DIR`, z. B. `UPLOT_PROFILES_DIR=. ./start.sh` für
+`presets.json` und `pens.json` neben `app.py`.
 
 ## Funktionen
 
@@ -96,10 +110,21 @@ Die Profile liegen hier in `presets.json` (Drucker) und `pens.json` (Stifte) neb
   ihn an ein AxiDraw oder NextDraw weitergibt. Zeichenfläche frei oder per Modellvorlage (Maße aus den
   Herstellerangaben), Nullpunkt oben links an der Stiftposition beim Einschalten, kein Düsen-Versatz, kein Umklappen
   in Y. Die Datei beginnt mit `; uplot-axidraw 1`, Z0 = Stift unten, Z1 = Stift oben (die Höhen stellt µprint ein),
-  keine Referenzfahrt, am Ende zurück auf X0 Y0.
+  keine Referenzfahrt, am Ende zurück auf X0 Y0. Drucker-G-Code beginnt mit `; uplot-printer 1`; beide haben in
+  der zweiten Zeile `; uplot-bounds x0 y0 x1 y1`, die Ausdehnung der gezeichneten Linien in mm.
+- Seite 1:1 (Layout): übernimmt die Seite der SVG mit ihren Rändern im Maßstab 1:1, z. B. eine A5-Seite aus einem
+  Generator. Die obere linke Papierecke liegt am Nullpunkt (beim Drucker die untere linke), verschoben um Position
+  X/Y. Die Vorschau zeigt das Blatt gestrichelt.
+- Optimieren „Nur wenn nötig“: Hat schon vpype die Linien zusammengefügt und sortiert (Metadaten der SVG, z. B. aus
+  dem handcoded.art plotter workbench oder `vpype … write`), bleibt die Reihenfolge, wie sie ist.
+- Zusammenspiel mit [µprint](https://github.com/dmyrenne/uprint): „An µprint senden“ öffnet µprint in einem neuen
+  Fenster und übergibt den G-Code im Browser (`postMessage`); hochgeladen wird erst nach Bestätigung in µprint.
+  Umgekehrt öffnet µprint μplot mit einer SVG, Gerätetyp und Zeichenfläche („In µplot bearbeiten“). µprint ruft
+  außerdem `/api/inspect` und `/api/convert` direkt auf (CORS offen, ohne Cookies), um SVGs ohne Umweg in G-Code
+  umzuwandeln. Der μplot-Server sieht dabei nur die Datei, nicht die Adresse von µprint.
 - Geräte-Profile: Maschinentyp, Kalibrierung und Geschwindigkeiten als Profil speichern. „Prusa MK3S+“ ist das Standardprofil;
-  es lässt sich überschreiben und mit „Zurücksetzen“ wiederherstellen. Profile speichert der Server (siehe
-  Installation), die übrigen Einstellungen der Browser.
+  es lässt sich überschreiben und mit „Zurücksetzen“ wiederherstellen. Profile und die übrigen Einstellungen
+  speichert der Browser (siehe „Datenschutz und Profile“).
 - Stift-Profile: Farbe und Strichbreite des Stifts einstellen und als eigenes Profil speichern, z. B. „Gelstift rot 0,5“.
   Die Vorschau zeichnet die Linien in dieser Farbe und in echter Breite, so sieht man vor dem Plotten, ob
   Schraffuren zulaufen. Stift-Profile ändern den G-Code nicht. „Fineliner 0.4 mm“ ist das Standardprofil und

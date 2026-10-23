@@ -5,7 +5,9 @@ LABEL org.opencontainers.image.title="μplot" \
       org.opencontainers.image.source="https://github.com/dmyrenne/uplot" \
       org.opencontainers.image.authors="Daniel Myrenne"
 
-ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1 UPLOT_DATA=/data
+# Ohne UPLOT_PROFILES_DIR speichert der Server nichts (eigene Profile im Browser); für eine eigene Instanz mit
+# Profilen auf dem Server UPLOT_PROFILES_DIR=/data setzen und ein Volume einhängen (compose.yaml)
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 WORKDIR /app
 
 COPY requirements.txt .
@@ -22,7 +24,6 @@ COPY static static
 
 RUN useradd --uid 1000 --create-home uplot && mkdir /data && chown uplot /data
 USER uplot
-VOLUME /data
 EXPOSE 5055
 
 # vpype braucht bei großen SVGs etwas länger, daher großzügiges Timeout

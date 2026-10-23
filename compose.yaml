@@ -7,9 +7,13 @@ services:
     # build: .                  # zum Bauen aus dem Quellcode einkommentieren, dann "docker compose up -d --build"
     ports:
       - "5055:5055"             # im ganzen Netz erreichbar; nur lokal: "127.0.0.1:5055:5055"
-    volumes:
-      - uplot-data:/data        # Drucker- und Stift-Profile (presets.json, pens.json)
     restart: unless-stopped
+    # Eigene Profile liegen standardmäßig im Browser, der Server speichert nichts. Für gemeinsame Profile aller
+    # Geräte im Heimnetz die folgenden Zeilen und den volumes-Block unten einkommentieren:
+    # environment:
+    #   UPLOT_PROFILES_DIR: /data
+    # volumes:
+    #   - uplot-data:/data      # Drucker- und Stift-Profile (presets.json, pens.json)
 
-volumes:
-  uplot-data:
+# volumes:
+#   uplot-data:
